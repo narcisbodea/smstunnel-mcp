@@ -1,0 +1,62 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.narcisbodea/smstunnel-mcp",
+  "title": "SMSTunnel",
+  "description": "Send texts (SMS) from your own Android phone and your own number, from any AI app.",
+  "version": "1.0.0",
+  "websiteUrl": "https://smstunnel.io",
+  "repository": {
+    "url": "https://github.com/narcisbodea/smstunnel-mcp",
+    "source": "github"
+  },
+  "icons": [
+    {
+      "src": "https://smstunnel.io/android-chrome-512x512.png",
+      "mimeType": "image/png",
+      "sizes": ["512x512"]
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@narcisbodea/smstunnel-mcp",
+      "version": "1.0.0",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "SMSTUNNEL_API_KEY",
+          "description": "Your SMSTunnel API key, from https://dashboard.smstunnel.io/apps (Apps → Add an app).",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string",
+          "placeholder": "sk_live_..."
+        },
+        {
+          "name": "SMSTUNNEL_DEVICE_ID",
+          "description": "Optional: the phone that sends when the assistant doesn't name one (its ID under Phones in the dashboard).",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "SMSTUNNEL_DEFAULT_COUNTRY_CODE",
+          "description": "Optional: country calling code that completes numbers written without + or 00, e.g. +40.",
+          "isRequired": false,
+          "format": "string",
+          "placeholder": "+40"
+        },
+        {
+          "name": "SMSTUNNEL_CONFIRM_EACH_TEXT",
+          "description": "Optional: true (default) makes AI apps that support it ask you before every text; false for unattended runs.",
+          "isRequired": false,
+          "format": "boolean",
+          "default": "true",
+          "choices": ["true", "false"]
+        }
+      ]
+    }
+  ]
+}

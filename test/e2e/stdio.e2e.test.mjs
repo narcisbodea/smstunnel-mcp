@@ -114,9 +114,12 @@ describe('smstunnel-mcp over stdio against the local SMSTunnel API', { skip: SKI
         else assert.equal(discovered, undefined);
       });
 
-      it('lists the six tools', async () => {
+      it('lists the six tools, the send tools asking for approval of each text', async () => {
         const { tools } = await client.listTools();
         assert.deepEqual(tools.map((t) => t.name).sort(), TOOL_NAMES);
+        for (const tool of tools) {
+          assert.equal(tool._meta?.['anthropic/requiresUserInteraction'] === true, tool.name.startsWith('send_'), tool.name);
+        }
       });
 
       it('list_phones shows the test phone online', async () => {

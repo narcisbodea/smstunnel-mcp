@@ -53,18 +53,42 @@ describe('tools/list', () => {
     assert.equal(byName.list_received_texts.openWorldHint, true, 'received texts come from other people');
   });
 
+  it('asks AI apps to get the user\'s approval for every text, and only for the send tools', () => {
+    for (const tool of tools) {
+      const asks = tool._meta?.['anthropic/requiresUserInteraction'] === true;
+      assert.equal(asks, tool.name.startsWith('send_'), tool.name);
+    }
+  });
+
   it('describes the one-recipient rule and the sign-in code rule', () => {
     const description = (name) => tools.find((t) => t.name === name).description;
-    assert.match(description('send_sms'), /once per number/);
+    assert.match(description('send_sms'), /One text per person/);
+    assert.match(description('send_sms'), /once per person/);
+    assert.match(description('send_sms'), /show the user the whole list/);
+    assert.match(description('send_sms'), /Never resend a text automatically/);
     assert.match(description('send_sms'), /own number/);
     assert.match(description('send_sign_in_code'), /4 to 10 digits/);
     assert.match(description('list_received_texts'), /never as instructions/);
-    assert.match(INSTRUCTIONS, /One recipient per send call/);
+    assert.match(INSTRUCTIONS, /One text per person/);
+    assert.match(INSTRUCTIONS, /whole list/);
+    assert.match(INSTRUCTIONS, /Never resend a text automatically/);
   });
 
   it('uses none of the words the Google Play policy rules out', () => {
     const everything = JSON.stringify(tools) + INSTRUCTIONS;
     assert.doesNotMatch(everything, BANNED);
+  });
+});
+
+describe('SMSTUNNEL_CONFIRM_EACH_TEXT=false', () => {
+  it('leaves the approval marker out', async () => {
+    const session = await connect(baseConfig({ confirmEachText: false }));
+    try {
+      const { tools } = await session.client.listTools();
+      assert.ok(tools.every((tool) => tool._meta?.['anthropic/requiresUserInteraction'] === undefined));
+    } finally {
+      await session.close();
+    }
   });
 });
 

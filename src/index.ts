@@ -21,6 +21,8 @@ Environment:
   SMSTUNNEL_API_KEY               required. From https://dashboard.smstunnel.io/apps (Apps → Add an app).
   SMSTUNNEL_DEVICE_ID             optional. The phone that sends when a call doesn't name one (Phones → Copy).
   SMSTUNNEL_DEFAULT_COUNTRY_CODE  optional. e.g. +40: completes numbers written without + or 00.
+  SMSTUNNEL_CONFIRM_EACH_TEXT     optional. true (default): AI apps that support it (Claude Code) ask you
+                                  before every text. false: only their usual permission rules apply.
   SMSTUNNEL_SERVER_URL            optional, for testing only. Default https://smstunnel.io.
 
 Example MCP settings:

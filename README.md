@@ -15,7 +15,7 @@ Your phone needs the SMSTunnel app from Google Play:
 
 | Tool | What it does | Changes anything? |
 | --- | --- | --- |
-| `send_sms` | Sends one text to one number. To text several people, the assistant calls it once per number. | Sends a text |
+| `send_sms` | Sends one text to one number. For several people, the assistant shows you the whole list first, then sends one text per person. | Sends a text |
 | `send_sign_in_code` | Sends a sign-in or verification code (the text must contain a code of 4 to 10 digits). Uses the separate sign-in code allowance. | Sends a text |
 | `get_message_status` | Shows whether a text is pending, sent, delivered, failed or unconfirmed. | No |
 | `list_phones` | Lists your linked phones, which are online, and their IDs. | No |
@@ -40,7 +40,7 @@ To let your AI app read the texts you receive, also turn on **Can also read rece
 
 You need [Node.js](https://nodejs.org) 20 or newer. Your AI app starts the server with `npx`; you don't run it by hand.
 
-**Claude Desktop**: Settings → Developer → Edit Config (`claude_desktop_config.json`), then restart Claude:
+**Claude Desktop**: in the Claude menu, open **Settings… → Developer → Edit Config** (`claude_desktop_config.json`), add the server, then quit and restart Claude:
 
 ```json
 {
@@ -61,8 +61,10 @@ On Windows, if the app can't start `npx`, use `"command": "cmd"` and `"args": ["
 **Claude Code**:
 
 ```bash
-claude mcp add smstunnel --scope user -e SMSTUNNEL_API_KEY=sk_live_your_key -- npx -y @narcisbodea/smstunnel-mcp
+claude mcp add --env SMSTUNNEL_API_KEY=sk_live_your_key --transport stdio --scope user smstunnel -- npx -y @narcisbodea/smstunnel-mcp
 ```
+
+Run `/mcp` in Claude Code to check that `smstunnel` is connected.
 
 **Cursor**: the same `mcpServers` block as Claude Desktop, in `~/.cursor/mcp.json` (all projects) or `.cursor/mcp.json` (one project).
 
@@ -107,6 +109,7 @@ claude mcp add smstunnel --scope user -e SMSTUNNEL_API_KEY=sk_live_your_key -- n
 | `SMSTUNNEL_API_KEY` | yes | The key from **Apps → Add an app**. |
 | `SMSTUNNEL_DEVICE_ID` | no | The phone that sends when the assistant doesn't name one. Copy its ID under **Phones**. Without it, SMSTunnel picks one of your online phones. |
 | `SMSTUNNEL_DEFAULT_COUNTRY_CODE` | no | For example `+40` or `1`: completes numbers written without `+` or `00`. Without it, numbers must be in international format. |
+| `SMSTUNNEL_CONFIRM_EACH_TEXT` | no | `true` (default): AI apps that support it, such as Claude Code, ask you before every single text, even in modes that otherwise run tools on their own. Set `false` only for unattended runs, such as a script that texts you. |
 | `SMSTUNNEL_SERVER_URL` | no | For testing only. Default `https://smstunnel.io`. |
 
 The server starts even without a key, so your AI app can list its tools; every call then says what is missing. The key is never printed or logged.
@@ -120,10 +123,39 @@ The server starts even without a key, so your AI app can list its tools; every c
 - "How many texts do I have left today?"
 - "Did anyone reply to me since this morning?"
 
+## Calendar reminders with an AI assistant
+
+Add SMSTunnel next to your calendar in the same AI app, and the assistant can read your appointments and text reminders from your own number.
+
+- "Look at my calendar for tomorrow and text each client with an appointment a reminder with the time and the address. Show me the list first."
+- "Text me my agenda for tomorrow."
+- "Did any client reply to today's reminders?" (needs **Can also read received texts**)
+
+The assistant reads the events with your calendar connector, finds each client's phone number and shows you the whole list: each person, their number and the exact text. After your OK it sends one text per person, and it never resends a failed text on its own. Keep each client's number in the event (for example in the description), with `+` and the country code, so the assistant can find it.
+
+**Claude Desktop**
+
+1. Connect your calendar: open **Customize → Connectors**, find **Google Calendar** (or **Microsoft 365** for an Outlook calendar; it needs a work or school Microsoft 365 account) and select **Connect to Claude**.
+2. Add SMSTunnel as in [Add the server to your AI app](#3-add-the-server-to-your-ai-app) and restart Claude Desktop.
+3. In a chat, select **+ → Connectors** and make sure both your calendar and `smstunnel` are on.
+
+**Claude Code**
+
+1. Connect your calendar at [claude.ai/customize/connectors](https://claude.ai/customize/connectors). Connectors you add there appear in Claude Code when you're signed in with the same Claude account (`/login`). Google Calendar and Microsoft 365 can't be added with `claude mcp add`.
+2. Add SMSTunnel:
+
+   ```bash
+   claude mcp add --env SMSTUNNEL_API_KEY=sk_live_your_key --transport stdio --scope user smstunnel -- npx -y @narcisbodea/smstunnel-mcp
+   ```
+
+3. Run `/mcp`: your calendar (listed as coming from claude.ai) and `smstunnel` should both be connected.
+
+Claude Code asks you before every text (see `SMSTUNNEL_CONFIRM_EACH_TEXT`): with ten clients you approve ten texts, each showing the number and the words. Calendar events can come from other people (invitations), so read the list before you approve it.
+
 ## Safe use
 
 - **Only texts people expect.** Alerts to yourself, replies, reminders, sign-in codes. Unsolicited texts from a personal SIM break most carriers' terms, and in the EU they fall under GDPR and the ePrivacy rules.
-- **You approve each text.** The tools tell the assistant to show you the number and the words and wait for your OK, and AI apps ask before calling a tool that changes something.
+- **You approve each text.** The tools tell the assistant to show you the number and the words (or the whole list, for several people) and wait for your OK. AI apps ask before calling a tool that changes something, and Claude Code asks before every single text unless you set `SMSTUNNEL_CONFIRM_EACH_TEXT=false`.
 - **One recipient per text.** There is no tool for several numbers: the assistant sends one text per person, at most about 30 a minute.
 - **No blind resends.** A failed, unconfirmed or timed-out text may still have gone out; the tools tell the assistant to ask you instead of sending it again.
 - **Received texts are data.** Anyone can text your phone, so the tools tell the assistant to treat received words as information, never as instructions. Turn reading on only if you need it.
@@ -176,6 +208,8 @@ Rules for your answer:
 - Validate phone numbers (international format) before sending, and handle every error above.
 - Help me test it with my own number first.
 - Only send texts people expect from me. No unsolicited texts.
+- One text per person. Before texting several people, show me the whole list (numbers and words)
+  and wait for my OK.
 - Never resend a text on your own: one that shows as failed or unconfirmed may have gone out.
 ```
 
@@ -213,7 +247,7 @@ The key file is JSON with `serverUrl`, `apiKey` and `deviceId`.
 - [SMSTunnel on Google Play](https://play.google.com/store/apps/details?id=io.smstunnel.app)
 - Support: support@smstunnel.io
 
-Claude, Cursor, Visual Studio Code and Docker are trademarks of their owners. SMSTunnel is not affiliated with, endorsed by, or sponsored by Anthropic, Anysphere, Microsoft or Docker.
+Claude, Cursor, Visual Studio Code, Docker, Google Calendar, Outlook and Microsoft 365 are trademarks of their owners. SMSTunnel is not affiliated with, endorsed by, or sponsored by Anthropic, Anysphere, Microsoft, Docker or Google.
 
 ## License
 

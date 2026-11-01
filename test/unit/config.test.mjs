@@ -37,6 +37,19 @@ describe('loadConfig', () => {
     assert.deepEqual(config.problems, []);
   });
 
+  it('asks for approval of each text unless SMSTUNNEL_CONFIRM_EACH_TEXT is false', () => {
+    assert.equal(loadConfig({ SMSTUNNEL_API_KEY: 'k' }).confirmEachText, true);
+    for (const off of ['false', 'FALSE', '0', 'no', 'off']) {
+      assert.equal(loadConfig({ SMSTUNNEL_API_KEY: 'k', SMSTUNNEL_CONFIRM_EACH_TEXT: off }).confirmEachText, false, off);
+    }
+    for (const on of ['true', '1', 'yes', 'on', '']) {
+      assert.equal(loadConfig({ SMSTUNNEL_API_KEY: 'k', SMSTUNNEL_CONFIRM_EACH_TEXT: on }).confirmEachText, true, on);
+    }
+    const unclear = loadConfig({ SMSTUNNEL_API_KEY: 'k', SMSTUNNEL_CONFIRM_EACH_TEXT: 'sometimes' });
+    assert.equal(unclear.confirmEachText, true);
+    assert.match(unclear.problems[0], /SMSTUNNEL_CONFIRM_EACH_TEXT must be true or false/);
+  });
+
   it('reports a bad phone ID and a bad country code', () => {
     const config = loadConfig({ SMSTUNNEL_API_KEY: 'k', SMSTUNNEL_DEVICE_ID: 'not an id!', SMSTUNNEL_DEFAULT_COUNTRY_CODE: 'RO' });
     assert.equal(config.deviceId, undefined);

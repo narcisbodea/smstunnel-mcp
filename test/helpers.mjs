@@ -42,6 +42,7 @@ export function baseConfig(overrides = {}) {
     serverUrl: 'https://smstunnel.test',
     deviceId: undefined,
     defaultCountryCode: undefined,
+    confirmEachText: true,
     timeoutMs: 2000,
     problems: [],
     ...overrides,

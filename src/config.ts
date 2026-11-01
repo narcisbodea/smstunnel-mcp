@@ -24,6 +24,11 @@ export interface SmsTunnelConfig {
   deviceId?: string;
   /** SMSTUNNEL_DEFAULT_COUNTRY_CODE, as "+<digits>". */
   defaultCountryCode?: string;
+  /**
+   * SMSTUNNEL_CONFIRM_EACH_TEXT (default true): the send tools ask AI apps that support it (Claude Code) to get
+   * the user's approval for every single text, even in modes that otherwise run tools without asking.
+   */
+  confirmEachText: boolean;
   timeoutMs: number;
   /** What is wrong with the settings, in words. Empty when everything is usable. */
   problems: string[];
@@ -71,11 +76,21 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     }
   }
 
+  let confirmEachText = true;
+  const rawConfirm = env.SMSTUNNEL_CONFIRM_EACH_TEXT?.trim().toLowerCase();
+  if (rawConfirm) {
+    if (['false', '0', 'no', 'off'].includes(rawConfirm)) confirmEachText = false;
+    else if (!['true', '1', 'yes', 'on'].includes(rawConfirm)) {
+      problems.push('SMSTUNNEL_CONFIRM_EACH_TEXT must be true or false (leave it empty for true).');
+    }
+  }
+
   return {
     apiKey,
     serverUrl,
     deviceId: deviceId && DEVICE_ID.test(deviceId) ? deviceId : undefined,
     defaultCountryCode,
+    confirmEachText,
     timeoutMs: DEFAULT_TIMEOUT_MS,
     problems,
   };
