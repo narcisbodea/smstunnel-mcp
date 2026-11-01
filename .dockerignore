@@ -1,0 +1,12 @@
+# Keep secrets and local files out of the build context.
+.env
+.env.*
+!.env.example
+.git
+node_modules
+dist
+test
+*.tgz
+*.md
+!README.md
+directories
