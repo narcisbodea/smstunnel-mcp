@@ -1,0 +1,15 @@
+# Dependencies and build output
+node_modules/
+dist/
+*.tgz
+
+# Secrets: never commit API keys (only .env.example is tracked)
+.env
+.env.*
+!.env.example
+
+# Local tooling
+.mcpregistry_*
+.DS_Store
+Thumbs.db
+coverage/
