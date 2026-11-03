@@ -9,6 +9,9 @@
  *   SMSTUNNEL_E2E_MONGO_URL     e.g. mongodb://127.0.0.1:27018/smstunnel_app_dev
  *   SMSTUNNEL_E2E_MONGODB_FROM  optional: a package.json path whose node_modules has the `mongodb` driver
  *                               (defaults to this package)
+ *   SMSTUNNEL_E2E_DOCKER_IMAGE  optional: run the server from this Docker image (`docker build -t <name> .`)
+ *                               instead of dist/index.js, the way Docker's MCP Toolkit starts it. A local
+ *                               API on 127.0.0.1 or localhost is then reached as host.docker.internal.
  * Never point it at production: it refuses any server that is not local.
  */
 import assert from 'node:assert/strict';
@@ -26,6 +29,7 @@ const MONGO_URL = process.env.SMSTUNNEL_E2E_MONGO_URL;
 const SKIP = !KEY_FILE || !MONGO_URL ? 'set SMSTUNNEL_E2E_KEY_FILE and SMSTUNNEL_E2E_MONGO_URL to run the end-to-end test' : false;
 
 const SERVER_ENTRY = fileURLToPath(new URL('../../dist/index.js', import.meta.url));
+const DOCKER_IMAGE = process.env.SMSTUNNEL_E2E_DOCKER_IMAGE;
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]', 'host.docker.internal']);
 const TOOL_NAMES = ['find_contact', 'get_message_status', 'get_usage', 'list_phones', 'list_received_texts', 'send_sign_in_code', 'send_sms'];
 
@@ -39,6 +43,33 @@ function loadKey() {
   const host = new URL(key.serverUrl).hostname;
   if (!LOCAL_HOSTS.has(host)) throw new Error(`Refusing to run against ${host}: the end-to-end test only talks to a local SMSTunnel.`);
   return key;
+}
+
+/**
+ * How the client starts the server: node with dist/index.js, or `docker run` with the same settings passed by
+ * name (`-e NAME`), so the key never appears on a command line.
+ */
+function serverProcess(key) {
+  const env = {
+    SMSTUNNEL_API_KEY: key.apiKey,
+    SMSTUNNEL_SERVER_URL: key.serverUrl,
+    SMSTUNNEL_DEFAULT_COUNTRY_CODE: '+1',
+  };
+  if (!DOCKER_IMAGE) return { command: process.execPath, args: [SERVER_ENTRY], env };
+
+  const url = new URL(key.serverUrl);
+  if (['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)) url.hostname = 'host.docker.internal';
+  env.SMSTUNNEL_SERVER_URL = url.origin;
+  // The client passes on PATH and the user's folders by itself; these point the Docker CLI at another engine.
+  for (const name of ['DOCKER_HOST', 'DOCKER_CONFIG', 'DOCKER_CONTEXT']) {
+    if (process.env[name]) env[name] = process.env[name];
+  }
+  const names = ['SMSTUNNEL_API_KEY', 'SMSTUNNEL_SERVER_URL', 'SMSTUNNEL_DEFAULT_COUNTRY_CODE'];
+  return {
+    command: 'docker',
+    args: ['run', '--rm', '-i', '--init', '--cap-drop=ALL', ...names.flatMap((name) => ['-e', name]), DOCKER_IMAGE],
+    env,
+  };
 }
 
 async function openMongo() {
@@ -89,16 +120,7 @@ describe('smstunnel-mcp over stdio against the local SMSTunnel API', { skip: SKI
 
       before(async () => {
         client = new Client({ name: 'smstunnel-mcp-e2e', version: '1.0.0' }, options);
-        const transport = new StdioClientTransport({
-          command: process.execPath,
-          args: [SERVER_ENTRY],
-          env: {
-            SMSTUNNEL_API_KEY: key.apiKey,
-            SMSTUNNEL_SERVER_URL: key.serverUrl,
-            SMSTUNNEL_DEFAULT_COUNTRY_CODE: '+1',
-          },
-          stderr: 'pipe',
-        });
+        const transport = new StdioClientTransport({ ...serverProcess(key), stderr: 'pipe' });
         transport.stderr?.on('data', (chunk) => {
           stderr += chunk;
         });

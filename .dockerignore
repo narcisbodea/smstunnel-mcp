@@ -1,12 +1,5 @@
-# Keep secrets and local files out of the build context.
-.env
-.env.*
-!.env.example
-.git
-node_modules
-dist
-test
-*.tgz
-*.md
-!README.md
-directories
+# The image installs the published package from npm, so the build needs only these two files.
+# Everything else stays out of the build context: .env files with keys, the git history, node_modules, dist.
+*
+!docker/package.json
+!docker/package-lock.json

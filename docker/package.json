@@ -1,0 +1,10 @@
+{
+  "name": "smstunnel-mcp-docker-image",
+  "version": "1.1.0",
+  "private": true,
+  "description": "What the Dockerfile installs: the published @narcisbodea/smstunnel-mcp, one exact version. Change it only after that version is on npm.",
+  "license": "MIT",
+  "dependencies": {
+    "@narcisbodea/smstunnel-mcp": "1.1.0"
+  }
+}
