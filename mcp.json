@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "smstunnel": {
+      "command": "npx",
+      "args": ["-y", "@narcisbodea/smstunnel-mcp@1.1.0"],
+      "env": {
+        "SMSTUNNEL_API_KEY": "${SMSTUNNEL_API_KEY}"
+      }
+    }
+  }
+}

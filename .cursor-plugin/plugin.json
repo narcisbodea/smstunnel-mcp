@@ -1,0 +1,32 @@
+{
+  "name": "smstunnel",
+  "displayName": "SMSTunnel",
+  "version": "1.1.0",
+  "minClientVersions": {
+    "cursor": "3.13.0"
+  },
+  "description": "Send texts from your own Android phone and your own number: one recipient per text, your OK before anything is sent, delivery status, sign-in codes and replies.",
+  "author": {
+    "name": "SMSTunnel",
+    "email": "support@smstunnel.io"
+  },
+  "homepage": "https://smstunnel.io/integrations/mcp/",
+  "repository": "https://github.com/narcisbodea/smstunnel-mcp",
+  "license": "MIT",
+  "logo": "assets/icon.png",
+  "keywords": ["smstunnel", "sms", "text-messages", "android", "own-number", "sign-in-codes", "mcp"],
+  "category": "integrations",
+  "tags": ["smstunnel", "sms", "mcp"],
+  "variables": {
+    "type": "object",
+    "properties": {
+      "SMSTUNNEL_API_KEY": {
+        "type": "string",
+        "title": "SMSTunnel key",
+        "description": "From https://dashboard.smstunnel.io/apps: Apps → Add an app."
+      }
+    },
+    "required": ["SMSTUNNEL_API_KEY"]
+  },
+  "mcpServers": "./mcp.json"
+}
