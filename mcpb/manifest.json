@@ -1,0 +1,63 @@
+{
+  "manifest_version": "0.3",
+  "name": "smstunnel",
+  "display_name": "SMSTunnel",
+  "version": "1.0.0",
+  "description": "Send texts from your own Android phone and your own number, check delivery, send sign-in codes and read replies.",
+  "long_description": "SMSTunnel lets Claude send texts (SMS) from your own Android phone, from your own number, so people see a number they know and can reply. Claude asks you before every text, sends one text per person, never resends on its own, and treats the texts you receive as information, not instructions.\n\nYou need the SMSTunnel app from Google Play on your phone and a key from dashboard.smstunnel.io (Apps, Add an app, MCP). Reading received texts is off until you turn it on for the key and in the app.",
+  "author": {
+    "name": "SMSTunnel",
+    "url": "https://smstunnel.io"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/narcisbodea/smstunnel-mcp"
+  },
+  "homepage": "https://smstunnel.io/integrations/mcp/",
+  "documentation": "https://smstunnel.io/integrations/mcp/",
+  "support": "https://smstunnel.io/contact/",
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "SMSTUNNEL_API_KEY": "${user_config.api_key}",
+        "SMSTUNNEL_DEFAULT_COUNTRY_CODE": "${user_config.default_country_code}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "send_sms", "description": "Send one text to one number from your own phone." },
+    { "name": "send_sign_in_code", "description": "Send a sign-in or verification code by text." },
+    { "name": "get_message_status", "description": "Check whether a text is pending, sent, delivered, failed or unconfirmed." },
+    { "name": "list_phones", "description": "List your linked phones and which are online." },
+    { "name": "get_usage", "description": "Show your plan, what you sent today and what is left." },
+    { "name": "list_received_texts", "description": "Read texts your phones received, if you allowed it." }
+  ],
+  "keywords": ["sms", "text messages", "android", "own number", "2fa", "sign-in codes"],
+  "license": "MIT",
+  "privacy_policies": ["https://smstunnel.io/privacy/"],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": { "node": ">=20.0.0" }
+  },
+  "user_config": {
+    "api_key": {
+      "type": "string",
+      "title": "SMSTunnel key",
+      "description": "From dashboard.smstunnel.io: Apps, Add an app, MCP.",
+      "sensitive": true,
+      "required": true
+    },
+    "default_country_code": {
+      "type": "string",
+      "title": "Default country code (optional)",
+      "description": "For example +40 or 1. It completes numbers written without +. Leave it empty to always use international numbers.",
+      "required": false,
+      "default": ""
+    }
+  }
+}

@@ -38,9 +38,11 @@ To let your AI app read the texts you receive, also turn on **Can also read rece
 
 ### 3. Add the server to your AI app
 
-You need [Node.js](https://nodejs.org) 20 or newer. Your AI app starts the server with `npx`; you don't run it by hand.
+**Claude Desktop, the easy way**: download [smstunnel.mcpb](https://github.com/narcisbodea/smstunnel-mcp/releases/latest/download/smstunnel.mcpb) and open it (double-click, or drag it into **Settings → Extensions**). Claude Desktop installs it, asks for your key and keeps it in your system's secure storage. Nothing else to install: Claude Desktop runs the bundled server itself.
 
-**Claude Desktop**: in the Claude menu, open **Settings… → Developer → Edit Config** (`claude_desktop_config.json`), add the server, then quit and restart Claude:
+For the other ways below you need [Node.js](https://nodejs.org) 20 or newer. Your AI app starts the server with `npx`; you don't run it by hand.
+
+**Claude Desktop, by hand**: in the Claude menu, open **Settings… → Developer → Edit Config** (`claude_desktop_config.json`), add the server, then quit and restart Claude:
 
 ```json
 {

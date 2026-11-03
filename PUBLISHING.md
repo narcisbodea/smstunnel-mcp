@@ -99,8 +99,28 @@ Since August 2026 the catalog has merged almost nothing new: 5 merges, none addi
 
 AI-assisted pull requests are welcome there (their CONTRIBUTING even offers `cat add_mcp_server.md | claude`); no trailer or disclosure line is required.
 
+## 7. Claude Code plugin
+
+The repository is also a plugin marketplace (`.claude-plugin/plugin.json` and `marketplace.json`): `/plugin install smstunnel --marketplace narcisbodea/smstunnel-mcp`. Check it with `claude plugin validate --strict .`. To list it in Anthropic's directory (claude.ai, Cowork and Claude Code), submit it from the developer portal at https://claude.ai/directory/manage, signed in with a paid claude.ai plan.
+
+## 8. Claude Desktop bundle (`smstunnel.mcpb`)
+
+`mcpb/manifest.json` describes the bundle. Build it from a clean copy, so the bundle holds only runtime files:
+
+```bash
+B=$(mktemp -d)
+git archive HEAD package.json package-lock.json tsconfig.json src LICENSE README.md assets/icon.png | tar -x -C "$B"
+cd "$B" && npm ci && npm run build && npm prune --omit=dev
+cp <repo>/mcpb/manifest.json manifest.json && cp assets/icon.png icon.png
+rm -rf src tsconfig.json assets package-lock.json && printf 'README.md\n' > .mcpbignore
+npx -y @anthropic-ai/mcpb validate manifest.json && npx -y @anthropic-ai/mcpb pack . smstunnel.mcpb
+```
+
+Attach `smstunnel.mcpb` to a GitHub release whose tag does NOT start with `v` (for example `mcpb-v1.0.0`): a `v*` tag runs the MCP Registry workflow. The README links to `releases/latest/download/smstunnel.mcpb`, so keep that file name.
+
 ## Later versions
 
-1. Raise the version in `package.json` and in both places in `server.json`.
+1. Raise the version in `package.json`, in both places in `server.json`, in `.claude-plugin/plugin.json` and in `mcpb/manifest.json`.
 2. `npm test`, then `npm publish`, then `mcp-publisher publish`.
 3. Glama: **Make Release** again. Docker (if listed) opens its own pull requests to move the pinned commit.
+4. Build and attach a new `smstunnel.mcpb` (section 8).
