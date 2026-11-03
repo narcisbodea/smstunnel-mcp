@@ -1,6 +1,6 @@
 # Publishing smstunnel-mcp
 
-Published so far: the GitHub repository, npm `@narcisbodea/smstunnel-mcp` 1.1.0, the Official MCP Registry (1.0.0 and 1.1.0), the Claude Desktop bundle (release `mcpb-v1.1.0`), the Claude Code plugin (submitted to Anthropic's directory), and Glama (listed, claimed, rated A). The sections below are the steps for each place, in the order they depend on each other. The other directories (Gemini's gallery, Cursor, Cline, awesome lists, skill directories) are tracked with their texts in the owner's `docs/marketing/mcp-directories/SUBMISSIONS.md`.
+Published so far: the GitHub repository, npm `@narcisbodea/smstunnel-mcp` 1.1.0, the Official MCP Registry (1.0.0 and 1.1.0), the Claude Desktop bundle (release `mcpb-v1.1.0`), the Claude Code plugin (submitted to Anthropic's directory), and Glama (listed, claimed, rated A). The sections below are the steps for each place, in the order they depend on each other. The other directories (Gemini's gallery, Cursor, Cline, awesome lists, skill directories) are tracked with their texts in the owner's notes, outside this repository.
 
 | # | Where | Needs | Who acts |
 | --- | --- | --- | --- |
@@ -117,7 +117,7 @@ Since 1 September 2026 the catalog has merged 5 pull requests, none adding a ser
 
 The `Dockerfile` installs the published npm release, not this checkout: `docker/package.json` names the exact version and `docker/package-lock.json` pins it and its three dependencies by sha512. The base image is Node.js 24 LTS on Alpine, pinned by digest; npm, npx, corepack and yarn are removed from the final image, the code is owned by root, and the server runs as the unprivileged user `node`. `docker run --rm -i --init --cap-drop=ALL --read-only` works (that is how Docker's tooling lists the tools), and the server lists its tools without a key, so no `tools.json` is needed.
 
-The pull request's files (`servers/smstunnel/server.yaml` and the description) are in the owner's `docs/marketing/mcp-directories/docker/`. Docker builds `mcp/smstunnel` from this repository's `Dockerfile` at the commit named in `source.commit`, which must be on GitHub; after the first merge, Docker's bot opens pull requests to move that pin.
+The pull request's files (`servers/smstunnel/server.yaml` and the description) are kept in the owner's notes, outside this repository. Docker builds `mcp/smstunnel` from this repository's `Dockerfile` at the commit named in `source.commit`, which must be on GitHub; after the first merge, Docker's bot opens pull requests to move that pin.
 
 AI-assisted pull requests are welcome there (their CONTRIBUTING even offers `cat add_mcp_server.md | claude`); no trailer or disclosure line is required. Docker asks for test credentials through a form: send only a key from a separate test account with no phone linked, so every text waits in the queue and none goes out.
 
