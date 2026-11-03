@@ -1,17 +1,19 @@
 # Publishing smstunnel-mcp
 
-Everything here is ready; nothing has been published. Run the steps in this order: each one needs the one before it.
+Published so far: the GitHub repository, npm `@narcisbodea/smstunnel-mcp` 1.1.0, the Official MCP Registry (1.0.0 and 1.1.0), the Claude Desktop bundle (release `mcpb-v1.1.0`), the Claude Code plugin (submitted to Anthropic's directory), and Glama (listed, claimed, rated A). The sections below are the steps for each place, in the order they depend on each other. The other directories (Gemini's gallery, Cursor, Cline, awesome lists, skill directories) are tracked with their texts in the owner's `docs/marketing/mcp-directories/SUBMISSIONS.md`.
 
 | # | Where | Needs | Who acts |
 | --- | --- | --- | --- |
-| 1 | GitHub `narcisbodea/smstunnel-mcp` (public) | nothing | you: create the repo and push |
+| 1 | GitHub `narcisbodea/smstunnel-mcp` (public) | nothing | you: push |
 | 2 | npm `@narcisbodea/smstunnel-mcp` | 1 (links in the package point to the repo) | you: Windows Hello |
-| 3 | Official MCP Registry `io.github.narcisbodea/smstunnel-mcp` | 2 (the registry reads `mcpName` from npm) | you: GitHub device login |
-| 4 | Glama | 1 (public repo) | you: GitHub login, two clicks |
+| 3 | Official MCP Registry `io.github.narcisbodea/smstunnel-mcp` | 2 (the registry reads `mcpName` from npm) | the `v*` tag workflow (or your GitHub device login) |
+| 4 | Glama | 1 (public repo) | you: GitHub login |
 | 5 | punkpeye/awesome-mcp-servers | 4 (the Glama score badge decides merges) | a pull request |
-| 6 | Docker MCP Catalog (optional) | 1 (a commit on GitHub) | a pull request |
+| 6 | Docker MCP Catalog | 1 (a commit with the Dockerfile on GitHub) | a pull request |
+| 9 | Gemini CLI extensions gallery | 1 + the `gemini-cli-extension` topic | automatic, daily |
+| 10 | Cursor (cursor.directory, Cursor Marketplace) | 1 | you: a form, signed in |
 
-Package name: `@narcisbodea/smstunnel-mcp` (the npm scope `@smstunnel` doesn't exist). Registry name: `io.github.narcisbodea/smstunnel-mcp`. Version: `1.1.0` in `package.json`, `server.json`, the plugin, the bundle and the skill (see [Later versions](#later-versions)).
+Package name: `@narcisbodea/smstunnel-mcp` (the npm scope `@smstunnel` doesn't exist). Registry name: `io.github.narcisbodea/smstunnel-mcp`. Version: `1.1.0` in `package.json`, `server.json`, the Claude Code and Cursor plugins, the Gemini extension, the Docker image, the bundle and the skill (see [Later versions](#later-versions)).
 
 ## 1. GitHub
 
@@ -63,18 +65,39 @@ GitHub login grants only `io.github.narcisbodea/*`, matched case-sensitively, wh
 
 ## 4. Glama
 
-Glama lists public GitHub repositories on its own; you can also submit it right away.
+Done on 3 Nov 2026: https://glama.ai/mcp/servers/narcisbodea/smstunnel-mcp is listed, claimed (`glama.json` names `narcisbodea`), rated A, and its score badge works. Its last inspection (3 Nov, 07:44 UTC) saw the six tools of 1.0.0, so it needs a new release to show `find_contact`.
 
-1. Submit (if it isn't listed yet): https://glama.ai/mcp/servers → **Add Server** → **Runs from source**. Name `SMSTunnel`; GitHub URL `https://github.com/narcisbodea/smstunnel-mcp`; description: `Send texts (SMS) and sign-in codes from your own Android phone and your own number from any AI app, check whether they went out, and read replies.` → **Submit for Review**. Glama emails how to provide the Dockerfile.
-2. Claim it: on the server's page select **Claim** → **Login with GitHub to claim**. `glama.json` (maintainer `narcisbodea`) is in the repo root.
-3. Make a release, so the checks run and the score appears: open `https://glama.ai/mcp/servers/narcisbodea/smstunnel-mcp/admin/dockerfile`, use the repository's `Dockerfile` (it builds the server and starts it with `node dist/index.js`), leave `SMSTUNNEL_API_KEY` empty, then **Deploy** → **Make Release** → **Create & Publish Release**. The server starts and lists its tools without a key, which is all the checks need.
-4. Check the badge: `https://glama.ai/mcp/servers/narcisbodea/smstunnel-mcp/badges/score.svg`.
+Glama builds its own image from fields on `https://glama.ai/mcp/servers/narcisbodea/smstunnel-mcp/admin/dockerfile` (signed in with GitHub); it doesn't take a pasted Dockerfile. It copies the repository, runs the build steps, and starts the command under `mcp-proxy`. These values install the published npm release, the same one the Docker image runs:
+
+| Field | Value |
+| --- | --- |
+| Node.js version | `24` |
+| Python version | leave as it is |
+| Build steps | `["npm ci --prefix docker --omit=dev --ignore-scripts --no-audit --no-fund"]` |
+| CMD arguments | `["node", "docker/node_modules/@narcisbodea/smstunnel-mcp/dist/index.js"]` |
+| Environment variables JSON schema | the block below |
+| Placeholder parameters | `{}` (the server starts and lists its tools without a key) |
+| Pinned commit SHA | leave empty |
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "SMSTUNNEL_API_KEY": { "type": "string", "description": "Your SMSTunnel API key, from https://dashboard.smstunnel.io/apps (Apps → Add an app)." },
+    "SMSTUNNEL_DEVICE_ID": { "type": "string", "description": "Optional: the phone that sends when the assistant doesn't name one (its ID under Phones in the dashboard)." },
+    "SMSTUNNEL_DEFAULT_COUNTRY_CODE": { "type": "string", "description": "Optional: country calling code that completes numbers written without + or 00, e.g. +40." }
+  },
+  "required": []
+}
+```
+
+Then **Deploy**, wait for the test to pass, **Make Release**, and publish it on the releases page. Check the badge: `https://glama.ai/mcp/servers/narcisbodea/smstunnel-mcp/badges/score.svg`.
 
 Glama also scores every tool's definition (purpose, when to use it, behaviour, parameters); the tools have titles, annotations that match their descriptions, and output schemas.
 
 ## 5. awesome-mcp-servers
 
-Only after the Glama badge shows: the list's bot labels pull requests `has-glama` or `missing-glama`, and in practice only `has-glama` ones get merged.
+The Glama badge shows, so this can go now: the list's bot labels pull requests `has-glama` or `missing-glama`, and in practice only `has-glama` ones get merged.
 
 In a fork of `punkpeye/awesome-mcp-servers`, add this line to `README.md` under `### 💬 <a name="communication"></a>Communication`, in alphabetical order between `multimail-dev/mcp-server` and `ni-c/carddav-mcp`:
 
@@ -88,16 +111,15 @@ Pull request title: `Add SMSTunnel MCP server`. Body: one sentence on what it do
 
 **About "agent" pull requests:** the list's CONTRIBUTING asks automated agents to put `🤖🤖🤖` at the end of the title for a "fast-tracked" merge. The maintainer wrote that this is a trap to spot bot pull requests, and that human ones get priority (glama.ai/blog/2026-03-19-open-source-has-a-bot-problem). It is not a fast track. If you open the pull request yourself, no marker is needed; if an agent opens it, it should add the marker, as asked.
 
-## 6. Docker MCP Catalog (optional, low odds right now)
+## 6. Docker MCP Catalog (low odds right now)
 
-Since August 2026 the catalog has merged almost nothing new: 5 merges, none adding a server, with about 2,400 pull requests open. Prepare it only if you want to be in the queue.
+Since 1 September 2026 the catalog has merged 5 pull requests, none adding a server (the last new local servers went in in April), with about 2,500 open. A pull request still puts SMSTunnel in the queue.
 
-1. Fork `docker/mcp-registry` and copy `directories/docker-mcp-registry/servers/smstunnel/server.yaml` from this repository to `servers/smstunnel/server.yaml` there.
-2. Replace `REPLACE_WITH_THE_40_CHARACTER_SHA_OF_THE_PUSHED_COMMIT` with the commit Docker should build (`git rev-parse HEAD` after step 1; it must be on GitHub). Docker builds the image `mcp/smstunnel` from this repository's `Dockerfile` at that commit.
-3. Optional local check (needs Go 1.24+, Task and Docker Desktop): `task validate -- --name smstunnel`, `task build -- --tools smstunnel`, `task catalog -- smstunnel`, `docker mcp catalog import $PWD/catalogs/smstunnel/catalog.yaml`, try it in Docker Desktop's MCP Toolkit, then `docker mcp catalog reset`.
-4. Open the pull request with their template. MIT is an accepted license. The server lists its tools without a key, so no `tools.json` is needed. Docker asks for test credentials through a form in its README: send only a dedicated test key, never your own.
+The `Dockerfile` installs the published npm release, not this checkout: `docker/package.json` names the exact version and `docker/package-lock.json` pins it and its three dependencies by sha512. The base image is Node.js 24 LTS on Alpine, pinned by digest; npm, npx, corepack and yarn are removed from the final image, the code is owned by root, and the server runs as the unprivileged user `node`. `docker run --rm -i --init --cap-drop=ALL --read-only` works (that is how Docker's tooling lists the tools), and the server lists its tools without a key, so no `tools.json` is needed.
 
-AI-assisted pull requests are welcome there (their CONTRIBUTING even offers `cat add_mcp_server.md | claude`); no trailer or disclosure line is required.
+The pull request's files (`servers/smstunnel/server.yaml` and the description) are in the owner's `docs/marketing/mcp-directories/docker/`. Docker builds `mcp/smstunnel` from this repository's `Dockerfile` at the commit named in `source.commit`, which must be on GitHub; after the first merge, Docker's bot opens pull requests to move that pin.
+
+AI-assisted pull requests are welcome there (their CONTRIBUTING even offers `cat add_mcp_server.md | claude`); no trailer or disclosure line is required. Docker asks for test credentials through a form: send only a key from a separate test account with no phone linked, so every text waits in the queue and none goes out.
 
 ## 7. Claude Code plugin
 
@@ -118,9 +140,26 @@ npx -y @anthropic-ai/mcpb validate manifest.json && npx -y @anthropic-ai/mcpb pa
 
 Attach `smstunnel.mcpb` to a GitHub release whose tag does NOT start with `v` (for example `mcpb-v1.1.0`): a `v*` tag runs the MCP Registry workflow. The README links to `releases/latest/download/smstunnel.mcpb`, so keep that file name.
 
+## 9. Gemini CLI extension
+
+`gemini-extension.json` and `GEMINI.md` make the repository a Gemini CLI extension: `gemini extensions install https://github.com/narcisbodea/smstunnel-mcp`. It runs `npx -y @narcisbodea/smstunnel-mcp@1.1.0`, loads the agent skill from `skills/`, and asks for two settings at install: the key (kept in the system keychain) and an optional default country code. Gemini CLI passes both to the server as `SMSTUNNEL_API_KEY` and `SMSTUNNEL_DEFAULT_COUNTRY_CODE`.
+
+The gallery at https://geminicli.com/extensions finds extensions on its own: a public repository with the GitHub topic `gemini-cli-extension` and `gemini-extension.json` at its root, crawled daily. There is no form.
+
+```bash
+gh repo edit narcisbodea/smstunnel-mcp --add-topic gemini-cli-extension
+```
+
+Check it locally with `gemini extensions validate .`.
+
+## 10. Cursor plugin
+
+`.cursor-plugin/plugin.json` and the root `mcp.json` make the repository a Cursor plugin: the server (pinned to `@1.1.0`), the agent skill from `skills/`, the logo `assets/icon.png`, and one variable, `SMSTUNNEL_API_KEY`, which Cursor asks for under **Plugins → Configure**. `plugin.json` validates against Cursor's schema (`cursor/plugins`, `schemas/plugin.schema.json`). Submit the repository URL at https://cursor.com/marketplace/publish (the official Marketplace, reviewed by Cursor) and at https://cursor.directory/plugins/new (the community list); both need you signed in.
+
 ## Later versions
 
-1. Raise the version in `package.json`, in both places in `server.json`, in `.claude-plugin/plugin.json` (its `version` and the exact `@narcisbodea/smstunnel-mcp@x.y.z` its server runs: the plugin directory refuses a range), in `mcpb/manifest.json` and in `metadata.version` of `skills/smstunnel-sms/SKILL.md`. In `package-lock.json`, change only its two top-level `version` fields. New tools also go in the `tools` list of `mcpb/manifest.json`.
-2. `npm test`, then `npm publish`, then `mcp-publisher publish`.
-3. Glama: **Make Release** again. Docker (if listed) opens its own pull requests to move the pinned commit.
-4. Build and attach a new `smstunnel.mcpb` (section 8).
+1. Raise the version in `package.json`, in both places in `server.json`, in `.claude-plugin/plugin.json` (its `version` and the exact `@narcisbodea/smstunnel-mcp@x.y.z` its server runs: the plugin directory refuses a range), in `.cursor-plugin/plugin.json`, in `gemini-extension.json` (its `version` and the `@x.y.z` in `args`), in the `@x.y.z` of `mcp.json`, in `mcpb/manifest.json` and in `metadata.version` of `skills/smstunnel-sms/SKILL.md`. In `package-lock.json`, change only its two top-level `version` fields. New tools also go in the `tools` list of `mcpb/manifest.json`.
+2. `npm test`, then `npm publish`, then `mcp-publisher publish` (or push the `vX.Y.Z` tag).
+3. Only after the new version is on npm: set it in `docker/package.json` (`version` and the dependency), then run `npm install --package-lock-only --ignore-scripts` in `docker/` and commit both files. Check with `docker build -t smstunnel-mcp . && docker run --rm smstunnel-mcp --version`.
+4. Glama: **Make Release** again. Docker (if listed) opens its own pull requests to move the pinned commit.
+5. Build and attach a new `smstunnel.mcpb` (section 8).

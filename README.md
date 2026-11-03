@@ -99,21 +99,35 @@ Run `/mcp` in Claude Code to check that `smstunnel` is connected.
 }
 ```
 
-**Docker**: the image runs the same server over stdio:
+**Gemini CLI**, as an extension (the server, the [agent skill](#agent-skill) and a short context file). Gemini CLI asks for your key and keeps it in your system's keychain:
+
+```bash
+gemini extensions install https://github.com/narcisbodea/smstunnel-mcp
+```
+
+Restart Gemini CLI and run `/mcp` to check that `smstunnel` is connected. To change the key later: `gemini extensions config smstunnel SMSTUNNEL_API_KEY`.
+
+**Docker**: the image runs the same server over stdio, exactly the version published on npm. Build it once (Docker fetches this repository itself):
+
+```bash
+docker build -t smstunnel-mcp https://github.com/narcisbodea/smstunnel-mcp.git
+```
+
+Then point your AI app at it:
 
 ```json
 {
   "mcpServers": {
     "smstunnel": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "-e", "SMSTUNNEL_API_KEY", "mcp/smstunnel"],
+      "args": ["run", "-i", "--rm", "-e", "SMSTUNNEL_API_KEY", "smstunnel-mcp"],
       "env": { "SMSTUNNEL_API_KEY": "sk_live_your_key" }
     }
   }
 }
 ```
 
-(`mcp/smstunnel` is the name in the Docker MCP Catalog; you can also build it from this repository with `docker build -t smstunnel-mcp .`.)
+The container runs as an unprivileged user and needs no ports or volumes. `-e SMSTUNNEL_API_KEY` hands it the key from `env` without putting the key on the command line.
 
 ### Settings
 
@@ -168,7 +182,7 @@ Claude Code asks you before every text (see `SMSTUNNEL_CONFIRM_EACH_TEXT`): with
 
 ## Agent skill
 
-[`skills/smstunnel-sms`](skills/smstunnel-sms/SKILL.md) is an [Agent Skill](https://agentskills.io) that tells your AI app when to use each tool and the rules above: one recipient per text, your OK before anything is sent, no automatic resends, received texts treated as information. The Claude Code plugin installs it for you. For other apps, copy the folder into the app's skills folder. The skill has no scripts; it works with the server set up as shown in [Setup](#setup).
+[`skills/smstunnel-sms`](skills/smstunnel-sms/SKILL.md) is an [Agent Skill](https://agentskills.io) that tells your AI app when to use each tool and the rules above: one recipient per text, your OK before anything is sent, no automatic resends, received texts treated as information. The Claude Code plugin and the Gemini CLI extension install it for you. For other apps, copy the folder into the app's skills folder. The skill has no scripts; it works with the server set up as shown in [Setup](#setup).
 
 ## Safe use
 
@@ -258,7 +272,12 @@ SMSTUNNEL_E2E_MONGODB_FROM=/path/to/a/project/with/mongodb/package.json \
 npm run test:e2e
 ```
 
-The key file is JSON with `serverUrl`, `apiKey` and `deviceId`.
+The key file is JSON with `serverUrl`, `apiKey` and `deviceId`. To run the same test against the Docker image, the way Docker's MCP Toolkit starts it, build the image and name it in `SMSTUNNEL_E2E_DOCKER_IMAGE` (a local API on `127.0.0.1` is then reached as `host.docker.internal`):
+
+```bash
+docker build -t smstunnel-mcp .
+SMSTUNNEL_E2E_DOCKER_IMAGE=smstunnel-mcp SMSTUNNEL_E2E_KEY_FILE=... SMSTUNNEL_E2E_MONGO_URL=... npm run test:e2e
+```
 
 ## Links
 
@@ -266,7 +285,7 @@ The key file is JSON with `serverUrl`, `apiKey` and `deviceId`.
 - [SMSTunnel on Google Play](https://play.google.com/store/apps/details?id=io.smstunnel.app)
 - Support: support@smstunnel.io
 
-Claude, Cursor, Visual Studio Code, Docker, Google Calendar, Outlook and Microsoft 365 are trademarks of their owners. SMSTunnel is not affiliated with, endorsed by, or sponsored by Anthropic, Anysphere, Microsoft, Docker or Google.
+Claude, Cursor, Visual Studio Code, Docker, Gemini, Google Calendar, Outlook and Microsoft 365 are trademarks of their owners. SMSTunnel is not affiliated with, endorsed by, or sponsored by Anthropic, Anysphere, Microsoft, Docker or Google.
 
 ## License
 
