@@ -152,6 +152,10 @@ The assistant reads the events with your calendar connector, finds each client's
 
 Claude Code asks you before every text (see `SMSTUNNEL_CONFIRM_EACH_TEXT`): with ten clients you approve ten texts, each showing the number and the words. Calendar events can come from other people (invitations), so read the list before you approve it.
 
+## Agent skill
+
+[`skills/smstunnel-sms`](skills/smstunnel-sms/SKILL.md) is an [Agent Skill](https://agentskills.io) that tells your AI app when to use each tool and the rules above: one recipient per text, your OK before anything is sent, no automatic resends, received texts treated as information. Copy the folder into your app's skills folder (for Claude Code, `~/.claude/skills/`). The skill has no scripts; it works with the server set up as shown in [Setup](#setup).
+
 ## Safe use
 
 - **Only texts people expect.** Alerts to yourself, replies, reminders, sign-in codes. Unsolicited texts from a personal SIM break most carriers' terms, and in the EU they fall under GDPR and the ePrivacy rules.
