@@ -120,7 +120,7 @@ Attach `smstunnel.mcpb` to a GitHub release whose tag does NOT start with `v` (f
 
 ## Later versions
 
-1. Raise the version in `package.json`, in both places in `server.json`, in `.claude-plugin/plugin.json`, in `mcpb/manifest.json` and in `metadata.version` of `skills/smstunnel-sms/SKILL.md`. In `package-lock.json`, change only its two top-level `version` fields. New tools also go in the `tools` list of `mcpb/manifest.json`.
+1. Raise the version in `package.json`, in both places in `server.json`, in `.claude-plugin/plugin.json` (its `version` and the exact `@narcisbodea/smstunnel-mcp@x.y.z` its server runs: the plugin directory refuses a range), in `mcpb/manifest.json` and in `metadata.version` of `skills/smstunnel-sms/SKILL.md`. In `package-lock.json`, change only its two top-level `version` fields. New tools also go in the `tools` list of `mcpb/manifest.json`.
 2. `npm test`, then `npm publish`, then `mcp-publisher publish`.
 3. Glama: **Make Release** again. Docker (if listed) opens its own pull requests to move the pinned commit.
 4. Build and attach a new `smstunnel.mcpb` (section 8).

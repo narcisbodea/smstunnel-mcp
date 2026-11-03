@@ -19,7 +19,7 @@
   "mcpServers": {
     "smstunnel": {
       "command": "npx",
-      "args": ["-y", "@narcisbodea/smstunnel-mcp@1"],
+      "args": ["-y", "@narcisbodea/smstunnel-mcp@1.1.0"],
       "env": {
         "SMSTUNNEL_API_KEY": "${user_config.api_key}",
         "SMSTUNNEL_DEFAULT_COUNTRY_CODE": "${user_config.default_country_code}"
