@@ -62,6 +62,20 @@ describe('SmsTunnelApi requests', () => {
     });
     for (const call of calls.slice(0, 4)) assert.equal(call.headers['Content-Type'], undefined, 'GET has no body');
   });
+
+  it('posts a name lookup to /names/find, with the search word in the body and never in the URL', async () => {
+    const { client, calls } = api({ 'POST /api/v1/names/find': [200, { items: [{ name: 'Ana Pop', number: '+40722123456' }], more: false }] });
+    const res = await client.findNames({ q: 'Ana Pop', limit: 5 });
+    await client.findNames({ q: 'Ștefan' });
+    assert.deepEqual(res, { items: [{ name: 'Ana Pop', number: '+40722123456' }], more: false });
+    assert.equal(calls[0].method, 'POST');
+    assert.equal(calls[0].url.href, 'https://smstunnel.test/api/v1/names/find');
+    assert.equal(calls[0].headers['X-API-Key'], FAKE_KEY);
+    assert.equal(calls[0].headers['Content-Type'], 'application/json');
+    assert.deepEqual(calls[0].body, { q: 'Ana Pop', limit: 5 });
+    assert.deepEqual(calls[1].body, { q: 'Ștefan' }, 'limit only when given');
+    for (const call of calls) assert.ok(!call.url.href.includes('Ana') && !decodeURIComponent(call.url.href).includes('Ștefan'));
+  });
 });
 
 describe('SmsTunnelApi errors', () => {
@@ -75,6 +89,24 @@ describe('SmsTunnelApi errors', () => {
     assert.equal(error.code, 'PERMISSION_REQUIRED');
     assert.equal(error.permission, 'sms:inbox');
     assert.match(error.message, /may not read received texts/);
+  });
+
+  it('carries the name lookup codes', async () => {
+    const answers = {
+      a: [403, { statusCode: 403, error: 'Forbidden', code: 'NAMES_NOT_ALLOWED', message: 'This API key may not look up names.' }],
+      b: [404, { statusCode: 404, error: 'Not Found', message: 'Cannot POST /api/v1/names/find' }],
+      c: [400, { statusCode: 400, error: 'Bad Request', code: 'QUERY_TOO_SHORT', message: ['q must be at least 2 characters'] }],
+      d: [429, { statusCode: 429, code: 'NAMES_LOOKUP_LIMIT', message: 'Too many name lookups for this key.' }],
+    };
+    const { client } = api({ 'POST /api/v1/names/find': (call) => answers[call.body.q] });
+    const e403 = await errorOf(client.findNames({ q: 'a' }));
+    assert.deepEqual([e403.status, e403.code, e403.message], [403, 'NAMES_NOT_ALLOWED', 'This API key may not look up names.']);
+    const e404 = await errorOf(client.findNames({ q: 'b' }));
+    assert.deepEqual([e404.status, e404.code], [404, undefined]);
+    const e400 = await errorOf(client.findNames({ q: 'c' }));
+    assert.deepEqual([e400.status, e400.code, e400.message], [400, 'QUERY_TOO_SHORT', 'q must be at least 2 characters']);
+    const e429 = await errorOf(client.findNames({ q: 'd' }));
+    assert.deepEqual([e429.status, e429.code], [429, 'NAMES_LOOKUP_LIMIT']);
   });
 
   it('reads every error body shape', async () => {

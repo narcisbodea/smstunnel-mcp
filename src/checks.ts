@@ -4,6 +4,8 @@
 
 export const MAX_TEXT_LENGTH = 1600; // 10 SMS parts, SMSTunnel's limit for /sms/send
 export const MAX_CODE_TEXT_LENGTH = 320; // SMSTunnel's limit for /sms/send-2fa
+export const MIN_NAME_LENGTH = 2; // SMSTunnel's /names/find refuses shorter searches (QUERY_TOO_SHORT)
+export const MAX_NAME_LENGTH = 60; // and longer ones
 
 export type Check<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -61,6 +63,25 @@ export function checkText(raw: unknown, max: number): Check<string> {
     return { ok: false, error: `The text has ${length} characters; the limit is ${max}. Shorten it.` };
   }
   return { ok: true, value: raw };
+}
+
+/** A person's name, or part of it, to look up: trimmed, 2 to 60 characters (counted as the server does). */
+export function checkName(raw: unknown): Check<string> {
+  const name = typeof raw === 'string' ? raw.replace(/\s+/g, ' ').trim() : '';
+  const length = [...name].length;
+  if (length < MIN_NAME_LENGTH) {
+    return {
+      ok: false,
+      error: `Give at least ${MIN_NAME_LENGTH} characters of the person's name, or ask the user for the number.`,
+    };
+  }
+  if (length > MAX_NAME_LENGTH) {
+    return {
+      ok: false,
+      error: `The name has ${length} characters; the limit is ${MAX_NAME_LENGTH}. Give only the person's name.`,
+    };
+  }
+  return { ok: true, value: name };
 }
 
 /** An optional phone ID (deviceId) from a tool call. */

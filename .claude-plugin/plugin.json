@@ -1,7 +1,7 @@
 {
   "name": "smstunnel",
   "displayName": "SMSTunnel",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Send texts from your own Android phone and your own number: one recipient per text, your OK before anything is sent, delivery status, sign-in codes and replies.",
   "author": {
     "name": "SMSTunnel",

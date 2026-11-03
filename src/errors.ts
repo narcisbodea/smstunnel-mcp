@@ -6,7 +6,7 @@ import { SmsTunnelApiError } from './api.js';
 import { clean } from './checks.js';
 import { DASHBOARD_APPS_URL } from './config.js';
 
-export type ToolKind = 'send' | 'code' | 'status' | 'phones' | 'usage' | 'received';
+export type ToolKind = 'send' | 'code' | 'status' | 'phones' | 'usage' | 'received' | 'names';
 
 const NOT_SENT = 'The text was not sent.';
 const MAYBE_SENT =
@@ -31,6 +31,9 @@ export function describeError(error: unknown, kind: ToolKind): string {
 
   switch (error.status) {
     case 400:
+      if (kind === 'names' && error.code === 'QUERY_TOO_SHORT') {
+        return `SMSTunnel needs at least 2 characters of a name to look it up ${tag}, so ask the user for more of the name or for the number.`;
+      }
       if (kind === 'code' && /verification code/i.test(error.message)) {
         return (
           `SMSTunnel refused the text: it found no sign-in code in it ${tag}. The code must stand on its own as ` +
@@ -49,6 +52,13 @@ export function describeError(error: unknown, kind: ToolKind): string {
       );
 
     case 403:
+      if (kind === 'names' && (!error.code || error.code === 'NAMES_NOT_ALLOWED' || error.code === 'PERMISSION_REQUIRED')) {
+        return (
+          `This API key may not look up names ${tag}: to allow it, open Apps in the SMSTunnel dashboard ` +
+          `(${DASHBOARD_APPS_URL}), choose this key and turn on "Can also look up names you saved in SMSTunnel"; ` +
+          'until then, ask the user for the number.'
+        );
+      }
       if (
         (error.code === 'PERMISSION_REQUIRED' && (error.permission === 'sms:inbox' || kind === 'received')) ||
         (kind === 'received' && !error.code)
@@ -71,6 +81,9 @@ export function describeError(error: unknown, kind: ToolKind): string {
       return `SMSTunnel refused the request ${tag}: ${said}${sending ? ` ${NOT_SENT}` : ''}`;
 
     case 404:
+      if (kind === 'names') {
+        return `Looking up names is not available on this SMSTunnel account yet ${tag}, so ask the user for the person's number.`;
+      }
       if (kind === 'status') {
         return (
           `SMSTunnel has no text with this ID for this API key ${tag}. Use the messageId that send_sms or ` +
@@ -83,6 +96,11 @@ export function describeError(error: unknown, kind: ToolKind): string {
       return `SMSTunnel found nothing ${tag}: ${said}`;
 
     case 429:
+      if (kind === 'names') {
+        return error.code === 'NAMES_LOOKUP_LIMIT'
+          ? `This API key reached its hourly or daily limit for name lookups ${tag}, so ask the user for the number.`
+          : `Too many requests ${tag}: wait a minute before looking up another name, or ask the user for the number.`;
+      }
       return (
         `Too many requests ${tag}: SMSTunnel takes about 30 texts a minute. ${sending ? `${NOT_SENT} ` : ''}` +
         'Wait a minute before trying again.'

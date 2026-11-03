@@ -27,7 +27,7 @@ const SKIP = !KEY_FILE || !MONGO_URL ? 'set SMSTUNNEL_E2E_KEY_FILE and SMSTUNNEL
 
 const SERVER_ENTRY = fileURLToPath(new URL('../../dist/index.js', import.meta.url));
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]', 'host.docker.internal']);
-const TOOL_NAMES = ['get_message_status', 'get_usage', 'list_phones', 'list_received_texts', 'send_sign_in_code', 'send_sms'];
+const TOOL_NAMES = ['find_contact', 'get_message_status', 'get_usage', 'list_phones', 'list_received_texts', 'send_sign_in_code', 'send_sms'];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const textOf = (result) => result.content.map((block) => block.text ?? '').join('\n');
@@ -114,7 +114,7 @@ describe('smstunnel-mcp over stdio against the local SMSTunnel API', { skip: SKI
         else assert.equal(discovered, undefined);
       });
 
-      it('lists the six tools, the send tools asking for approval of each text', async () => {
+      it('lists the seven tools, the send tools asking for approval of each text', async () => {
         const { tools } = await client.listTools();
         assert.deepEqual(tools.map((t) => t.name).sort(), TOOL_NAMES);
         for (const tool of tools) {

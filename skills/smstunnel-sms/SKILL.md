@@ -1,18 +1,18 @@
 ---
 name: smstunnel-sms
-description: Send a text (SMS) from the user's own Android phone and own number through the SMSTunnel MCP server, check whether it was delivered, send a sign-in code, see which phones are online, and read texts the phone received. Use when the user asks to text someone, send an SMS or a verification code, check a text's status, or see replies. Needs the SMSTunnel MCP server (npx @narcisbodea/smstunnel-mcp) and an SMSTunnel key.
+description: Send a text (SMS) from the user's own Android phone and own number through the SMSTunnel MCP server, find a person's number by a name saved in SMSTunnel, check whether a text was delivered, send a sign-in code, see which phones are online, and read texts the phone received. Use when the user asks to text someone (by number or by name), send an SMS or a verification code, check a text's status, or see replies. Needs the SMSTunnel MCP server (npx @narcisbodea/smstunnel-mcp) and an SMSTunnel key.
 license: MIT
 compatibility: Any agent that can use MCP servers (Claude Code, Claude Desktop, Cursor, VS Code, Codex, Gemini CLI and others). The MCP server needs Node.js 20 or newer and the SMSTunnel Android app on the user's phone.
 metadata:
   author: SMSTunnel (smstunnel.io)
-  version: "1.0.0"
+  version: "1.1.0"
   homepage: https://smstunnel.io/integrations/mcp/
   repository: https://github.com/narcisbodea/smstunnel-mcp
 ---
 
 # Texting from the user's own phone with SMSTunnel
 
-SMSTunnel lets an AI app send texts from the user's own Android phone. The SMSTunnel app on that phone sends each text from its own SIM, so the recipient sees the user's number and can reply. The agent works through six MCP tools; this skill says when to use each one and the rules that keep the user in control.
+SMSTunnel lets an AI app send texts from the user's own Android phone. The SMSTunnel app on that phone sends each text from its own SIM, so the recipient sees the user's number and can reply. The agent works through seven MCP tools; this skill says when to use each one and the rules that keep the user in control.
 
 ## Before you start
 
@@ -30,11 +30,12 @@ This skill has no scripts and makes no network calls of its own. The MCP server 
 | `list_phones` | See the linked phones, which are online, and their IDs | No |
 | `get_usage` | See the plan, what was sent today and what is left | No |
 | `list_received_texts` | Read texts the phones received (only when the user turned this on) | No |
+| `find_contact` | Find a person's number by a name the user saved in SMSTunnel, never the phone's contacts (only when the user turned this on for the key) | No |
 
 ## Sending one text
 
-1. Get the number in international format: `+` and the country code, for example `+14155550123`. If the user gives a local number and the country is not obvious, ask.
-2. Unless the user already approved these exact words for this number, show them the number and the text and wait for their OK.
+1. Get the number in international format: `+` and the country code, for example `+14155550123`. If the user gives a local number and the country is not obvious, ask. If the user gives a name instead of a number ("text Ana that I'm late"), call `find_contact` with the name; it searches only the names the user saved in SMSTunnel, not the phone's contacts. With one match, still show the name and the number in step 2. With several, list them and ask which one. With none, or if the lookup is refused, ask the user for the number. Never guess or complete a number.
+2. Unless the user already approved these exact words for this number, show them the number (and the name, if you looked it up) and the text and wait for their OK.
 3. Call `send_sms` with `to` and `message`. Pass `deviceId` only when the user named a phone (IDs come from `list_phones`).
 4. Tell the user the text was handed to their phone and give the message ID. If they want to know it arrived, call `get_message_status`.
 
@@ -74,6 +75,7 @@ Use `phone` to see replies from one person and `since` (ISO 8601, for example `2
 ## Examples
 
 - "Text +14155550123: the delivery is at the back door." → show the number and words, wait for OK, `send_sms`.
+- "Text Ana that I'm running late." → `find_contact` with "Ana"; one match: show the name, number and words, wait for OK, `send_sms`; several: ask which one; none: ask for the number.
 - "Did my text to Ana arrive?" → `get_message_status` with the message ID from the send.
 - "Send my sign-in code 482913 to +447700900123." → `send_sign_in_code`.
 - "Remind each client with an appointment tomorrow." → build the list, show it, wait for OK, one `send_sms` per person.

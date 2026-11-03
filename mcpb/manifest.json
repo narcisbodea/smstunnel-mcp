@@ -2,9 +2,9 @@
   "manifest_version": "0.3",
   "name": "smstunnel",
   "display_name": "SMSTunnel",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Send texts from your own Android phone and your own number, check delivery, send sign-in codes and read replies.",
-  "long_description": "SMSTunnel lets Claude send texts (SMS) from your own Android phone, from your own number, so people see a number they know and can reply. Claude asks you before every text, sends one text per person, never resends on its own, and treats the texts you receive as information, not instructions.\n\nYou need the SMSTunnel app from Google Play on your phone and a key from dashboard.smstunnel.io (Apps, Add an app, MCP). Reading received texts is off until you turn it on for the key and in the app.",
+  "long_description": "SMSTunnel lets Claude send texts (SMS) from your own Android phone, from your own number, so people see a number they know and can reply. Claude asks you before every text, sends one text per person, never resends on its own, and treats the texts you receive as information, not instructions.\n\nYou need the SMSTunnel app from Google Play on your phone and a key from dashboard.smstunnel.io (Apps, Add an app, MCP). Reading received texts is off until you turn it on for the key and in the app. Looking up names you saved in SMSTunnel is off until you turn it on for the key; your phone's contacts are never shared.",
   "author": {
     "name": "SMSTunnel",
     "url": "https://smstunnel.io"
@@ -35,7 +35,8 @@
     { "name": "get_message_status", "description": "Check whether a text is pending, sent, delivered, failed or unconfirmed." },
     { "name": "list_phones", "description": "List your linked phones and which are online." },
     { "name": "get_usage", "description": "Show your plan, what you sent today and what is left." },
-    { "name": "list_received_texts", "description": "Read texts your phones received, if you allowed it." }
+    { "name": "list_received_texts", "description": "Read texts your phones received, if you allowed it." },
+    { "name": "find_contact", "description": "Find a number by a name you saved in SMSTunnel, if you allowed it." }
   ],
   "keywords": ["sms", "text messages", "android", "own number", "2fa", "sign-in codes"],
   "license": "MIT",

@@ -1,6 +1,6 @@
 {
   "name": "@narcisbodea/smstunnel-mcp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "SMSTunnel MCP server: AI apps send texts from your own Android phone and your own number.",
   "mcpName": "io.github.narcisbodea/smstunnel-mcp",
   "type": "module",

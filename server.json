@@ -3,7 +3,7 @@
   "name": "io.github.narcisbodea/smstunnel-mcp",
   "title": "SMSTunnel",
   "description": "Send texts (SMS) from your own Android phone and your own number, from any AI app.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "websiteUrl": "https://smstunnel.io",
   "repository": {
     "url": "https://github.com/narcisbodea/smstunnel-mcp",
@@ -21,7 +21,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@narcisbodea/smstunnel-mcp",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

@@ -83,6 +83,21 @@ export interface ReceivedResponse {
   };
 }
 
+export interface NamesFound {
+  /** Names the account saved in SMSTunnel itself, never a phone's contacts. */
+  items?: Array<{ name?: string | null; number?: string | null }>;
+  /** true when more names match than `limit`. */
+  more?: boolean;
+  /** true when the account's names are private (only its desktop app can read them); `items` is then empty. */
+  private?: boolean;
+}
+
+export interface NamesFindResponse extends NamesFound {
+  success?: boolean;
+  /** Read too, in case the route wraps its answer in `data` like the other public routes. */
+  data?: NamesFound;
+}
+
 // ─── Requests ─────────────────────────────────────────────────────────────────
 
 export interface SendInput {
@@ -100,14 +115,23 @@ export interface ReceivedQuery {
   deviceId?: string;
 }
 
+export interface NamesQuery {
+  /** The name or part of it, 2 to 60 characters. */
+  q: string;
+  /** 1 to 5; SMSTunnel's default is 5. */
+  limit?: number;
+}
+
 // ─── Errors ───────────────────────────────────────────────────────────────────
 
 /**
  * SMSTunnel answered with an error status, or could not be reached (status 0, code NETWORK or TIMEOUT).
  * - 401: the API key is wrong, deleted or expired.
- * - 403: the key lacks a permission (`code: 'PERMISSION_REQUIRED'`, see `permission`), or the plan doesn't allow it.
- * - 404: no such message or phone for this key.
- * - 429: too many requests.
+ * - 400: a bad request (`code: 'QUERY_TOO_SHORT'` for a name search under 2 characters).
+ * - 403: the key lacks a permission (`code: 'PERMISSION_REQUIRED'`, see `permission`; `NAMES_NOT_ALLOWED` for name
+ *   lookups), or the plan doesn't allow it.
+ * - 404: no such message or phone for this key, or name lookups are not on for the account yet.
+ * - 429: too many requests (`code: 'NAMES_LOOKUP_LIMIT'`: the key's hourly or daily name lookups are used up).
  */
 export class SmsTunnelApiError extends Error {
   readonly status: number;
@@ -201,6 +225,17 @@ export class SmsTunnelApi {
     if (query.deviceId) params.set('deviceId', query.deviceId);
     const qs = params.toString();
     return this.request('GET', `/api/v1/sms/received${qs ? `?${qs}` : ''}`);
+  }
+
+  /**
+   * POST /api/v1/names/find: numbers for names the account saved in SMSTunnel (needs the key's opt-in
+   * canFindNames; others get 403 NAMES_NOT_ALLOWED). The search words go in the body, never in the URL.
+   */
+  findNames(query: NamesQuery): Promise<NamesFindResponse> {
+    return this.request('POST', '/api/v1/names/find', {
+      q: query.q,
+      ...(query.limit !== undefined ? { limit: query.limit } : {}),
+    });
   }
 
   private async request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {

@@ -21,6 +21,7 @@ Your phone needs the SMSTunnel app from Google Play:
 | `list_phones` | Lists your linked phones, which are online, and their IDs. | No |
 | `get_usage` | Shows your plan, what you sent today and what is left. | No |
 | `list_received_texts` | Reads texts your phones received (only with the opt-in below). | No |
+| `find_contact` | Finds a person's number by name, among the names you saved in SMSTunnel (only with the switch below; never your phone's contacts). You still see the name, the number and the words before anything is sent. | No |
 
 Every tool carries a title and the MCP annotations (read-only, destructive, idempotent, open-world), so your AI app can ask you before anything is sent.
 
@@ -35,6 +36,8 @@ Install the [SMSTunnel app from Google Play](https://play.google.com/store/apps/
 In your [SMSTunnel dashboard](https://dashboard.smstunnel.io/apps), open **Apps → Add an app** and copy its key. It is shown only once, and it can send texts and look up whether they went out.
 
 To let your AI app read the texts you receive, also turn on **Can also read received texts** when you add the app (or **Allow reading received texts** later), and turn on syncing of received texts in the SMSTunnel app on the phone. Syncing is off by default; when you turn it on, only texts that arrive from then on are synced.
+
+To let your AI app find a number by a name you saved in SMSTunnel ("text Ana"), turn on **Can also look up names you saved in SMSTunnel** for the key; it is off by default, and your phone's contacts are never shared this way.
 
 ### 3. Add the server to your AI app
 
@@ -132,6 +135,7 @@ The server starts even without a key, so your AI app can list its tools; every c
 - "Which of my phones are online?"
 - "How many texts do I have left today?"
 - "Did anyone reply to me since this morning?"
+- "Text Ana that I'm running late." (needs **Can also look up names you saved in SMSTunnel**)
 
 ## Calendar reminders with an AI assistant
 
@@ -195,7 +199,8 @@ How it works:
   20+, stdio). Its settings go in the "env" of the app's MCP server config: SMSTUNNEL_API_KEY
   (required), SMSTUNNEL_DEVICE_ID and SMSTUNNEL_DEFAULT_COUNTRY_CODE (optional).
 - Tools: send_sms (to, message, deviceId?, defaultCountryCode?), send_sign_in_code (same
-  fields), get_message_status (messageId), list_phones, get_usage, list_received_texts.
+  fields), get_message_status (messageId), list_phones, get_usage, list_received_texts,
+  find_contact (name).
 - The same API, if you write code: POST https://smstunnel.io/api/v1/sms/send with the headers
   X-API-Key: <key> and Content-Type: application/json, body {"to", "message", "deviceId"?,
   "defaultCountryCode"?}. The answer has "messageId"; GET /api/v1/sms/status/<messageId> shows

@@ -15,6 +15,8 @@ In the dashboard (https://dashboard.smstunnel.io/apps), open **Apps → Add an a
 
 To let the AI app read received texts, also turn on **Can also read received texts** for that key, and turn on syncing of received texts in the SMSTunnel app on the phone.
 
+To let the AI app find a number by a name saved in SMSTunnel (`find_contact`, for "text Ana"), turn on **Can also look up names you saved in SMSTunnel** for that key. It is off by default and never covers the phone's contacts.
+
 ## 3. Add the server to the AI app
 
 The AI app starts the server with `npx`; Node.js 20 or newer is needed. Replace `sk_live_your_key` with the key.

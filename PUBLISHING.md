@@ -11,7 +11,7 @@ Everything here is ready; nothing has been published. Run the steps in this orde
 | 5 | punkpeye/awesome-mcp-servers | 4 (the Glama score badge decides merges) | a pull request |
 | 6 | Docker MCP Catalog (optional) | 1 (a commit on GitHub) | a pull request |
 
-Package name: `@narcisbodea/smstunnel-mcp` (the npm scope `@smstunnel` doesn't exist). Registry name: `io.github.narcisbodea/smstunnel-mcp`. Version: `1.0.0` in both `package.json` and `server.json`.
+Package name: `@narcisbodea/smstunnel-mcp` (the npm scope `@smstunnel` doesn't exist). Registry name: `io.github.narcisbodea/smstunnel-mcp`. Version: `1.1.0` in `package.json`, `server.json`, the plugin, the bundle and the skill (see [Later versions](#later-versions)).
 
 ## 1. GitHub
 
@@ -32,17 +32,17 @@ In a normal terminal (not inside Claude Code: npm's security-key login needs a r
 ```bash
 cd D:/ANDROID/smstunnel-mcp
 npm whoami                 # if it answers E401: npm login
-npm test                   # 58 unit tests
+npm test                   # 73 unit tests
 npm publish                # access is public (publishConfig); prepack builds dist/
                            # the browser opens: confirm with Windows Hello
 npm view @narcisbodea/smstunnel-mcp version mcpName   # a new version can take a few minutes to show
 ```
 
-`npm pack --dry-run` lists what goes out: `dist/`, `README.md`, `LICENSE`, `package.json` (17 files, about 22 KB).
+`npm pack --dry-run` lists what goes out: `dist/`, `README.md`, `LICENSE`, `package.json` (17 files, about 27 KB).
 
 ## 3. Official MCP Registry
 
-The registry checks that npm's `@narcisbodea/smstunnel-mcp@1.0.0` has `"mcpName": "io.github.narcisbodea/smstunnel-mcp"`, so publish to npm first. `server.json` validates against the current schema (2025-12-11) and passes the registry's own check (`POST /v0/validate` answered `{"valid":true,"issues":[]}`).
+The registry checks that npm's `@narcisbodea/smstunnel-mcp@1.1.0` has `"mcpName": "io.github.narcisbodea/smstunnel-mcp"`, so publish to npm first. `server.json` validates against the current schema (2025-12-11) and passes the registry's own check (`POST /v0/validate` answered `{"valid":true,"issues":[]}`).
 
 Install `mcp-publisher` once (PowerShell, from the registry's quickstart):
 
@@ -105,7 +105,7 @@ The repository is also a plugin marketplace (`.claude-plugin/plugin.json` and `m
 
 ## 8. Claude Desktop bundle (`smstunnel.mcpb`)
 
-`mcpb/manifest.json` describes the bundle. Build it from a clean copy, so the bundle holds only runtime files:
+`mcpb/manifest.json` describes the bundle. `mcpb/icon.png` is a copy of `assets/icon.png`, so `npx -y @anthropic-ai/mcpb validate mcpb/manifest.json` also passes in the repository; if the icon changes, copy it to both places. Build it from a clean copy, so the bundle holds only runtime files:
 
 ```bash
 B=$(mktemp -d)
@@ -116,11 +116,11 @@ rm -rf src tsconfig.json assets package-lock.json && printf 'README.md\n' > .mcp
 npx -y @anthropic-ai/mcpb validate manifest.json && npx -y @anthropic-ai/mcpb pack . smstunnel.mcpb
 ```
 
-Attach `smstunnel.mcpb` to a GitHub release whose tag does NOT start with `v` (for example `mcpb-v1.0.0`): a `v*` tag runs the MCP Registry workflow. The README links to `releases/latest/download/smstunnel.mcpb`, so keep that file name.
+Attach `smstunnel.mcpb` to a GitHub release whose tag does NOT start with `v` (for example `mcpb-v1.1.0`): a `v*` tag runs the MCP Registry workflow. The README links to `releases/latest/download/smstunnel.mcpb`, so keep that file name.
 
 ## Later versions
 
-1. Raise the version in `package.json`, in both places in `server.json`, in `.claude-plugin/plugin.json` and in `mcpb/manifest.json`.
+1. Raise the version in `package.json`, in both places in `server.json`, in `.claude-plugin/plugin.json`, in `mcpb/manifest.json` and in `metadata.version` of `skills/smstunnel-sms/SKILL.md`. In `package-lock.json`, change only its two top-level `version` fields. New tools also go in the `tools` list of `mcpb/manifest.json`.
 2. `npm test`, then `npm publish`, then `mcp-publisher publish`.
 3. Glama: **Make Release** again. Docker (if listed) opens its own pull requests to move the pinned commit.
 4. Build and attach a new `smstunnel.mcpb` (section 8).

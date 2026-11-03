@@ -1,7 +1,21 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { checkDeviceId, checkRecipient, checkText, clean, cleanTime } from '../../dist/checks.js';
+import { checkDeviceId, checkName, checkRecipient, checkText, clean, cleanTime } from '../../dist/checks.js';
+
+describe('checkName', () => {
+  it('trims the name and takes 2 to 60 characters', () => {
+    assert.deepEqual(checkName('  Ana \n Pop '), { ok: true, value: 'Ana Pop' });
+    assert.deepEqual(checkName('Ș'.repeat(60)), { ok: true, value: 'Ș'.repeat(60) });
+    assert.equal(checkName('😀'.repeat(60)).ok, true, 'counted in characters');
+    for (const bad of ['', '  ', 'A', ' b ', '😀', undefined, null, 42]) {
+      const refused = checkName(bad);
+      assert.equal(refused.ok, false, String(bad));
+      assert.match(refused.error, /at least 2 characters/);
+    }
+    assert.match(checkName('x'.repeat(61)).error, /61 characters; the limit is 60/);
+  });
+});
 
 describe('checkRecipient', () => {
   it('accepts one international number', () => {
