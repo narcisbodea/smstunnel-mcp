@@ -58,7 +58,15 @@ You need [Node.js](https://nodejs.org) 20 or newer. Your AI app starts the serve
 
 On Windows, if the app can't start `npx`, use `"command": "cmd"` and `"args": ["/c", "npx", "-y", "@narcisbodea/smstunnel-mcp"]`.
 
-**Claude Code**:
+**Claude Code**, as a plugin (the server plus the [agent skill](#agent-skill)). Claude Code asks for your key and keeps it in your system's secure storage:
+
+```
+/plugin install smstunnel --marketplace narcisbodea/smstunnel-mcp
+```
+
+On Claude Code before 2.1.275, add the marketplace first: `/plugin marketplace add narcisbodea/smstunnel-mcp`, then `/plugin install smstunnel@smstunnel`.
+
+Or only the server, without the plugin:
 
 ```bash
 claude mcp add --env SMSTUNNEL_API_KEY=sk_live_your_key --transport stdio --scope user smstunnel -- npx -y @narcisbodea/smstunnel-mcp
@@ -66,7 +74,7 @@ claude mcp add --env SMSTUNNEL_API_KEY=sk_live_your_key --transport stdio --scop
 
 Run `/mcp` in Claude Code to check that `smstunnel` is connected.
 
-**Cursor**: the same `mcpServers` block as Claude Desktop, in `~/.cursor/mcp.json` (all projects) or `.cursor/mcp.json` (one project).
+**Cursor**: [![Add SMSTunnel to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=smstunnel&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkBuYXJjaXNib2RlYS9zbXN0dW5uZWwtbWNwIl0sImVudiI6eyJTTVNUVU5ORUxfQVBJX0tFWSI6InNrX2xpdmVfeW91cl9rZXkifX0%3D), then replace `sk_live_your_key` with your key in Cursor's MCP settings. Or add the same `mcpServers` block as Claude Desktop to `~/.cursor/mcp.json` (all projects) or `.cursor/mcp.json` (one project).
 
 **VS Code** (`.vscode/mcp.json`): VS Code asks for the key once and keeps it out of the file:
 
@@ -154,7 +162,7 @@ Claude Code asks you before every text (see `SMSTUNNEL_CONFIRM_EACH_TEXT`): with
 
 ## Agent skill
 
-[`skills/smstunnel-sms`](skills/smstunnel-sms/SKILL.md) is an [Agent Skill](https://agentskills.io) that tells your AI app when to use each tool and the rules above: one recipient per text, your OK before anything is sent, no automatic resends, received texts treated as information. Copy the folder into your app's skills folder (for Claude Code, `~/.claude/skills/`). The skill has no scripts; it works with the server set up as shown in [Setup](#setup).
+[`skills/smstunnel-sms`](skills/smstunnel-sms/SKILL.md) is an [Agent Skill](https://agentskills.io) that tells your AI app when to use each tool and the rules above: one recipient per text, your OK before anything is sent, no automatic resends, received texts treated as information. The Claude Code plugin installs it for you. For other apps, copy the folder into the app's skills folder. The skill has no scripts; it works with the server set up as shown in [Setup](#setup).
 
 ## Safe use
 

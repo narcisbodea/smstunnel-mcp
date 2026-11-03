@@ -19,7 +19,13 @@ To let the AI app read received texts, also turn on **Can also read received tex
 
 The AI app starts the server with `npx`; Node.js 20 or newer is needed. Replace `sk_live_your_key` with the key.
 
-**Claude Code**
+**Claude Code**: the easiest way is the plugin, which adds the server and this skill and asks for the key itself:
+
+```
+/plugin install smstunnel --marketplace narcisbodea/smstunnel-mcp
+```
+
+Or only the server:
 
 ```bash
 claude mcp add --env SMSTUNNEL_API_KEY=sk_live_your_key --transport stdio --scope user smstunnel -- npx -y @narcisbodea/smstunnel-mcp

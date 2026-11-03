@@ -1,0 +1,44 @@
+{
+  "name": "smstunnel",
+  "displayName": "SMSTunnel",
+  "version": "1.0.0",
+  "description": "Send texts from your own Android phone and your own number: one recipient per text, your OK before anything is sent, delivery status, sign-in codes and replies.",
+  "author": {
+    "name": "SMSTunnel",
+    "url": "https://smstunnel.io"
+  },
+  "homepage": "https://smstunnel.io/integrations/mcp/",
+  "repository": "https://github.com/narcisbodea/smstunnel-mcp",
+  "license": "MIT",
+  "keywords": ["sms", "text-messages", "android", "own-number", "2fa", "sign-in-codes", "mcp"],
+  "icon": "./assets/icon.png",
+  "documentationUrl": "https://smstunnel.io/integrations/mcp/",
+  "supportUrl": "https://smstunnel.io/contact/",
+  "privacyPolicyUrl": "https://smstunnel.io/privacy/",
+  "termsOfServiceUrl": "https://smstunnel.io/terms/",
+  "mcpServers": {
+    "smstunnel": {
+      "command": "npx",
+      "args": ["-y", "@narcisbodea/smstunnel-mcp@1"],
+      "env": {
+        "SMSTUNNEL_API_KEY": "${user_config.api_key}",
+        "SMSTUNNEL_DEFAULT_COUNTRY_CODE": "${user_config.default_country_code}"
+      }
+    }
+  },
+  "userConfig": {
+    "api_key": {
+      "type": "string",
+      "title": "SMSTunnel key",
+      "description": "From dashboard.smstunnel.io: Apps, Add an app, MCP. It is kept in your system's secure storage.",
+      "sensitive": true,
+      "required": true
+    },
+    "default_country_code": {
+      "type": "string",
+      "title": "Default country code",
+      "description": "Optional, for example +40 or 1. It completes numbers written without +. Leave it empty to always use international numbers.",
+      "default": ""
+    }
+  }
+}

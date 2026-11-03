@@ -1,0 +1,15 @@
+{
+  "name": "smstunnel",
+  "description": "SMSTunnel for Claude Code: texts from your own Android phone and your own number.",
+  "owner": {
+    "name": "SMSTunnel"
+  },
+  "plugins": [
+    {
+      "name": "smstunnel",
+      "source": "./",
+      "description": "Send texts from your own Android phone and your own number: one recipient per text, your OK before anything is sent, delivery status, sign-in codes and replies.",
+      "category": "productivity"
+    }
+  ]
+}
