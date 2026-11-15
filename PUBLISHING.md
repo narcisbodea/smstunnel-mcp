@@ -1,6 +1,6 @@
 # Publishing smstunnel-mcp
 
-Published so far: the GitHub repository, npm `@narcisbodea/smstunnel-mcp` 1.1.0, the Official MCP Registry (1.0.0 and 1.1.0), the Claude Desktop bundle (release `mcpb-v1.1.0`), the Claude Code plugin (submitted to Anthropic's directory), and Glama (listed, claimed, rated A). The sections below are the steps for each place, in the order they depend on each other. The other directories (Gemini's gallery, Cursor, Cline, awesome lists, skill directories) are tracked with their texts in the owner's notes, outside this repository.
+Published so far: the GitHub repository, npm `@narcisbodea/smstunnel-mcp` 1.2.0, the Official MCP Registry (1.0.0, 1.1.0 and 1.2.0), the Claude Desktop bundle (release `mcpb-v1.2.0`), the Claude Code plugin (submitted to Anthropic's directory), and Glama (listed, claimed, rated A). The sections below are the steps for each place, in the order they depend on each other. The other directories (Gemini's gallery, Cursor, Cline, awesome lists, skill directories) are tracked with their texts in the owner's notes, outside this repository.
 
 | # | Where | Needs | Who acts |
 | --- | --- | --- | --- |
@@ -65,33 +65,21 @@ GitHub login grants only `io.github.narcisbodea/*`, matched case-sensitively, wh
 
 ## 4. Glama
 
-Done on 3 Nov 2026: https://glama.ai/mcp/servers/narcisbodea/smstunnel-mcp is listed, claimed (`glama.json` names `narcisbodea`), rated A, and its score badge works. Its last inspection (3 Nov, 07:44 UTC) saw the six tools of 1.0.0, so it needs a new release to show `find_contact`.
+Done on 3 Nov 2026: https://glama.ai/mcp/servers/narcisbodea/smstunnel-mcp is listed, claimed (`glama.json` names `narcisbodea`), rated A, and its score badge works. Glama numbers its own releases: 0.1.3 (15 Nov 2026) is the code of 1.2.0, and its test found all nine tools.
 
-Glama builds its own image from fields on `https://glama.ai/mcp/servers/narcisbodea/smstunnel-mcp/admin/dockerfile` (signed in with GitHub); it doesn't take a pasted Dockerfile. It copies the repository, runs the build steps, and starts the command under `mcp-proxy`. These values install the published npm release, the same one the Docker image runs:
+Glama builds its own image from fields on `https://glama.ai/mcp/servers/narcisbodea/smstunnel-mcp/admin/dockerfile` (signed in with GitHub); it doesn't take a pasted Dockerfile. It clones the repository at its head commit, runs the build steps, and starts the command under `mcp-proxy`. The values in use (checked 15 Nov 2026) build this repository:
 
 | Field | Value |
 | --- | --- |
-| Node.js version | `24` |
-| Python version | leave as it is |
-| Build steps | `["npm ci --prefix docker --omit=dev --ignore-scripts --no-audit --no-fund"]` |
-| CMD arguments | `["node", "docker/node_modules/@narcisbodea/smstunnel-mcp/dist/index.js"]` |
-| Environment variables JSON schema | the block below |
-| Placeholder parameters | `{}` (the server starts and lists its tools without a key) |
-| Pinned commit SHA | leave empty |
+| Base image | `debian:trixie-slim` |
+| Node.js and Python versions | as Glama sets them |
+| Build steps | `["npm ci --ignore-scripts --no-audit --no-fund", "npm run build"]` |
+| CMD arguments | `["mcp-proxy", "--", "node", "dist/index.js"]` |
+| Environment variables JSON schema | `SMSTUNNEL_API_KEY` (required), `SMSTUNNEL_DEVICE_ID`, `SMSTUNNEL_DEFAULT_COUNTRY_CODE`, `SMSTUNNEL_CONFIRM_EACH_TEXT` and `SMSTUNNEL_SERVER_URL`, each with its description |
+| Placeholder parameters | `{"SMSTUNNEL_API_KEY": "placeholder-key-for-checks"}` (the server lists its tools without a real key) |
+| Pinned commit SHA | empty (the head commit) |
 
-```json
-{
-  "type": "object",
-  "properties": {
-    "SMSTUNNEL_API_KEY": { "type": "string", "description": "Your SMSTunnel API key, from https://dashboard.smstunnel.io/apps (Apps → Add an app)." },
-    "SMSTUNNEL_DEVICE_ID": { "type": "string", "description": "Optional: the phone that sends when the assistant doesn't name one (its ID under Phones in the dashboard)." },
-    "SMSTUNNEL_DEFAULT_COUNTRY_CODE": { "type": "string", "description": "Optional: country calling code that completes numbers written without + or 00, e.g. +40." }
-  },
-  "required": []
-}
-```
-
-Then **Deploy**, wait for the test to pass, **Make Release**, and publish it on the releases page. Check the badge: `https://glama.ai/mcp/servers/narcisbodea/smstunnel-mcp/badges/score.svg`.
+For a new version: **Repository → Sync Server** first (Glama's idea of the head commit can be days old; the Dockerfile page shows it as "Current head commit"), then **Dockerfile → Build & Release**. The test page lists the tools it found and the release it made. Check the badge: `https://glama.ai/mcp/servers/narcisbodea/smstunnel-mcp/badges/score.svg`.
 
 Glama also scores every tool's definition (purpose, when to use it, behaviour, parameters); the tools have titles, annotations that match their descriptions, and output schemas.
 
@@ -161,5 +149,5 @@ Check it locally with `gemini extensions validate .`.
 1. Raise the version in `package.json`, in both places in `server.json`, in `.claude-plugin/plugin.json` (its `version` and the exact `@narcisbodea/smstunnel-mcp@x.y.z` its server runs: the plugin directory refuses a range), in `.cursor-plugin/plugin.json`, in `gemini-extension.json` (its `version` and the `@x.y.z` in `args`), in the `@x.y.z` of `mcp.json`, in `mcpb/manifest.json` and in `metadata.version` of `skills/smstunnel-sms/SKILL.md`. In `package-lock.json`, change only its two top-level `version` fields. New tools also go in the `tools` list of `mcpb/manifest.json`.
 2. `npm test`, then `npm publish`, then `mcp-publisher publish` (or push the `vX.Y.Z` tag).
 3. Only after the new version is on npm: set it in `docker/package.json` (`version` and the dependency), then run `npm install --package-lock-only --ignore-scripts` in `docker/` and commit both files. Check with `docker build -t smstunnel-mcp . && docker run --rm smstunnel-mcp --version`.
-4. Glama: **Make Release** again. Docker (if listed) opens its own pull requests to move the pinned commit.
+4. Glama: **Sync Server**, then **Build & Release** (section 4). Docker (if listed) opens its own pull requests to move the pinned commit.
 5. Build and attach a new `smstunnel.mcpb` (section 8).
