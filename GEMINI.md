@@ -1,8 +1,9 @@
 # SMSTunnel
 
-The `smstunnel` MCP server sends texts (SMS) from the user's own Android phone and own number, through the SMSTunnel app on that phone. Its tools: `send_sms`, `send_sign_in_code`, `get_message_status`, `list_phones`, `get_usage`, `list_received_texts` and `find_contact`. The `smstunnel-sms` skill explains when to use each one; use it when the user wants to text someone, send a code or check texts.
+The `smstunnel` MCP server sends texts (SMS) from the user's own Android phone and own number, through the SMSTunnel app on that phone. Its tools: `send_sms`, `send_sign_in_code`, `get_message_status`, `list_scheduled_texts`, `cancel_scheduled_text`, `list_phones`, `get_usage`, `list_received_texts` and `find_contact`. The `smstunnel-sms` skill explains when to use each one; use it when the user wants to text someone, send a code or check texts.
 
 - Send only texts the user asked for and the recipient expects. Unless the user already approved these exact words for this number, show them the number and the text and wait for their OK.
+- For a text at a later time, give `send_sms` a `send_at`: the time the user asked for, in the user's own time zone, as ISO 8601 with that offset. Show the number, the words and the time, and wait for the OK. Cancel a scheduled text only when the user asks.
 - One text per person. Before texting several people, show the whole list (numbers and words), wait for the OK, then call `send_sms` once per person.
 - Numbers go in international format (`+` and the country code). Never guess or complete a number: ask.
 - Never resend a text on your own after an error, a timeout, or a "failed" or "unconfirmed" status. Tell the user and let them decide.

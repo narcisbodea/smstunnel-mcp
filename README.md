@@ -15,9 +15,11 @@ Your phone needs the SMSTunnel app from Google Play:
 
 | Tool | What it does | Changes anything? |
 | --- | --- | --- |
-| `send_sms` | Sends one text to one number. For several people, the assistant shows you the whole list first, then sends one text per person. | Sends a text |
+| `send_sms` | Sends one text to one number, now or at a time you give (see [Scheduled texts](#scheduled-texts)). For several people, the assistant shows you the whole list first, then sends one text per person. | Sends a text |
 | `send_sign_in_code` | Sends a sign-in or verification code (the text must contain a code of 4 to 10 digits). Uses the separate sign-in code allowance. | Sends a text |
 | `get_message_status` | Shows whether a text is pending, sent, delivered, failed or unconfirmed. | No |
+| `list_scheduled_texts` | Lists the texts scheduled through this key: the ones waiting to go out, or the ones that went out, failed or were canceled. | No |
+| `cancel_scheduled_text` | Cancels a scheduled text before it goes out. | Cancels a text |
 | `list_phones` | Lists your linked phones, which are online, and their IDs. | No |
 | `get_usage` | Shows your plan, what you sent today and what is left. | No |
 | `list_received_texts` | Reads texts your phones received (only with the opt-in below). | No |
@@ -151,6 +153,14 @@ The server starts even without a key, so your AI app can list its tools; every c
 - "Did anyone reply to me since this morning?"
 - "Text Ana that I'm running late." (needs **Can also look up names you saved in SMSTunnel**)
 
+## Scheduled texts
+
+Ask for a text later, and SMSTunnel keeps it and your phone sends it at that time:
+
+- "Text +14155550123 tomorrow at 9:00: your appointment is at 10:30."
+
+The assistant writes the time you say in your own time zone, with its offset (`send_at`, such as `2026-11-16T09:00:00+02:00`), shows you the number, the words and the time, and waits for your OK. `list_scheduled_texts` shows what is waiting, and `cancel_scheduled_text` cancels a text before it goes out. From 1 minute to 30 days ahead; at that time the text goes out as if it were sent then, and if the phone is offline it waits for it, up to 3 days. Texts waiting at once, per plan: Free 10, Starter 50, Standard 200, Professional 500, Enterprise 1000. The assistant sees only the texts scheduled with its own key; your dashboard shows them all under **Messages → Scheduled**, where you can cancel them too. Sign-in codes are never scheduled.
+
 ## Calendar reminders with an AI assistant
 
 Add SMSTunnel next to your calendar in the same AI app, and the assistant can read your appointments and text reminders from your own number.
@@ -212,13 +222,15 @@ How it works:
 - MCP server: my AI app starts it with the command `npx -y @narcisbodea/smstunnel-mcp` (Node.js
   20+, stdio). Its settings go in the "env" of the app's MCP server config: SMSTUNNEL_API_KEY
   (required), SMSTUNNEL_DEVICE_ID and SMSTUNNEL_DEFAULT_COUNTRY_CODE (optional).
-- Tools: send_sms (to, message, deviceId?, defaultCountryCode?), send_sign_in_code (same
-  fields), get_message_status (messageId), list_phones, get_usage, list_received_texts,
-  find_contact (name).
+- Tools: send_sms (to, message, deviceId?, defaultCountryCode?, send_at?), send_sign_in_code
+  (to, message, deviceId?, defaultCountryCode?), get_message_status (messageId),
+  list_scheduled_texts (scope?), cancel_scheduled_text (scheduledId), list_phones, get_usage,
+  list_received_texts, find_contact (name).
 - The same API, if you write code: POST https://smstunnel.io/api/v1/sms/send with the headers
   X-API-Key: <key> and Content-Type: application/json, body {"to", "message", "deviceId"?,
   "defaultCountryCode"?}. The answer has "messageId"; GET /api/v1/sms/status/<messageId> shows
-  pending, sent, delivered or failed.
+  pending, sent, delivered or failed. With "sendAt" (ISO 8601 with its offset, 1 minute to 30
+  days ahead) the text is scheduled instead: the answer has "scheduledId".
 - One recipient per call: for several people, one call per number. About 30 texts a minute.
 - Numbers in international format (+ and the country code). defaultCountryCode (e.g. "+44")
   completes numbers written without + or 00 and takes precedence over the phone's own setting.

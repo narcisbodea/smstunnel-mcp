@@ -1,11 +1,11 @@
 {
   "name": "smstunnel",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Send texts (SMS) from your own Android phone and your own number: one recipient per text, your OK before anything is sent, delivery status, sign-in codes and replies.",
   "mcpServers": {
     "smstunnel": {
       "command": "npx",
-      "args": ["-y", "@narcisbodea/smstunnel-mcp@1.1.0"]
+      "args": ["-y", "@narcisbodea/smstunnel-mcp@1.2.0"]
     }
   },
   "contextFileName": "GEMINI.md",

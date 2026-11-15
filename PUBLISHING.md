@@ -13,7 +13,7 @@ Published so far: the GitHub repository, npm `@narcisbodea/smstunnel-mcp` 1.1.0,
 | 9 | Gemini CLI extensions gallery | 1 + the `gemini-cli-extension` topic | automatic, daily |
 | 10 | Cursor (cursor.directory, Cursor Marketplace) | 1 | you: a form, signed in |
 
-Package name: `@narcisbodea/smstunnel-mcp` (the npm scope `@smstunnel` doesn't exist). Registry name: `io.github.narcisbodea/smstunnel-mcp`. Version: `1.1.0` in `package.json`, `server.json`, the Claude Code and Cursor plugins, the Gemini extension, the Docker image, the bundle and the skill (see [Later versions](#later-versions)).
+Package name: `@narcisbodea/smstunnel-mcp` (the npm scope `@smstunnel` doesn't exist). Registry name: `io.github.narcisbodea/smstunnel-mcp`. Version: `1.2.0` in `package.json`, `server.json`, the Claude Code and Cursor plugins, the Gemini extension, the Docker image, the bundle and the skill (see [Later versions](#later-versions)).
 
 ## 1. GitHub
 
@@ -34,7 +34,7 @@ In a normal terminal (not inside Claude Code: npm's security-key login needs a r
 ```bash
 cd D:/ANDROID/smstunnel-mcp
 npm whoami                 # if it answers E401: npm login
-npm test                   # 73 unit tests
+npm test                   # 94 unit tests
 npm publish                # access is public (publishConfig); prepack builds dist/
                            # the browser opens: confirm with Windows Hello
 npm view @narcisbodea/smstunnel-mcp version mcpName   # a new version can take a few minutes to show
@@ -44,7 +44,7 @@ npm view @narcisbodea/smstunnel-mcp version mcpName   # a new version can take a
 
 ## 3. Official MCP Registry
 
-The registry checks that npm's `@narcisbodea/smstunnel-mcp@1.1.0` has `"mcpName": "io.github.narcisbodea/smstunnel-mcp"`, so publish to npm first. `server.json` validates against the current schema (2025-12-11) and passes the registry's own check (`POST /v0/validate` answered `{"valid":true,"issues":[]}`).
+The registry checks that npm's `@narcisbodea/smstunnel-mcp@1.2.0` has `"mcpName": "io.github.narcisbodea/smstunnel-mcp"`, so publish to npm first. `server.json` validates against the current schema (2025-12-11) and passes the registry's own check (`POST /v0/validate` answered `{"valid":true,"issues":[]}`).
 
 Install `mcp-publisher` once (PowerShell, from the registry's quickstart):
 
@@ -142,7 +142,7 @@ Attach `smstunnel.mcpb` to a GitHub release whose tag does NOT start with `v` (f
 
 ## 9. Gemini CLI extension
 
-`gemini-extension.json` and `GEMINI.md` make the repository a Gemini CLI extension: `gemini extensions install https://github.com/narcisbodea/smstunnel-mcp`. It runs `npx -y @narcisbodea/smstunnel-mcp@1.1.0`, loads the agent skill from `skills/`, and asks for two settings at install: the key (kept in the system keychain) and an optional default country code. Gemini CLI passes both to the server as `SMSTUNNEL_API_KEY` and `SMSTUNNEL_DEFAULT_COUNTRY_CODE`.
+`gemini-extension.json` and `GEMINI.md` make the repository a Gemini CLI extension: `gemini extensions install https://github.com/narcisbodea/smstunnel-mcp`. It runs `npx -y @narcisbodea/smstunnel-mcp@1.2.0`, loads the agent skill from `skills/`, and asks for two settings at install: the key (kept in the system keychain) and an optional default country code. Gemini CLI passes both to the server as `SMSTUNNEL_API_KEY` and `SMSTUNNEL_DEFAULT_COUNTRY_CODE`.
 
 The gallery at https://geminicli.com/extensions finds extensions on its own: a public repository with the GitHub topic `gemini-cli-extension` and `gemini-extension.json` at its root, crawled daily. There is no form.
 
@@ -154,7 +154,7 @@ Check it locally with `gemini extensions validate .`.
 
 ## 10. Cursor plugin
 
-`.cursor-plugin/plugin.json` and the root `mcp.json` make the repository a Cursor plugin: the server (pinned to `@1.1.0`), the agent skill from `skills/`, the logo `assets/icon.png`, and one variable, `SMSTUNNEL_API_KEY`, which Cursor asks for under **Plugins → Configure**. `plugin.json` validates against Cursor's schema (`cursor/plugins`, `schemas/plugin.schema.json`). Submit the repository URL at https://cursor.com/marketplace/publish (the official Marketplace, reviewed by Cursor) and at https://cursor.directory/plugins/new (the community list); both need you signed in.
+`.cursor-plugin/plugin.json` and the root `mcp.json` make the repository a Cursor plugin: the server (pinned to `@1.2.0`), the agent skill from `skills/`, the logo `assets/icon.png`, and one variable, `SMSTUNNEL_API_KEY`, which Cursor asks for under **Plugins → Configure**. `plugin.json` validates against Cursor's schema (`cursor/plugins`, `schemas/plugin.schema.json`). Submit the repository URL at https://cursor.com/marketplace/publish (the official Marketplace, reviewed by Cursor) and at https://cursor.directory/plugins/new (the community list); both need you signed in.
 
 ## Later versions
 

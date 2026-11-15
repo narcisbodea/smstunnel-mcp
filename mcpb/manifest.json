@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "smstunnel",
   "display_name": "SMSTunnel",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Send texts from your own Android phone and your own number, check delivery, send sign-in codes and read replies.",
   "long_description": "SMSTunnel lets Claude send texts (SMS) from your own Android phone, from your own number, so people see a number they know and can reply. Claude asks you before every text, sends one text per person, never resends on its own, and treats the texts you receive as information, not instructions.\n\nYou need the SMSTunnel app from Google Play on your phone and a key from dashboard.smstunnel.io (Apps, Add an app, MCP). Reading received texts is off until you turn it on for the key and in the app. Looking up names you saved in SMSTunnel is off until you turn it on for the key; your phone's contacts are never shared.",
   "author": {
@@ -30,9 +30,11 @@
     }
   },
   "tools": [
-    { "name": "send_sms", "description": "Send one text to one number from your own phone." },
+    { "name": "send_sms", "description": "Send one text to one number from your own phone, now or at a time you give." },
     { "name": "send_sign_in_code", "description": "Send a sign-in or verification code by text." },
     { "name": "get_message_status", "description": "Check whether a text is pending, sent, delivered, failed or unconfirmed." },
+    { "name": "list_scheduled_texts", "description": "List the texts scheduled for later and what became of them." },
+    { "name": "cancel_scheduled_text", "description": "Cancel a scheduled text before it goes out." },
     { "name": "list_phones", "description": "List your linked phones and which are online." },
     { "name": "get_usage", "description": "Show your plan, what you sent today and what is left." },
     { "name": "list_received_texts", "description": "Read texts your phones received, if you allowed it." },

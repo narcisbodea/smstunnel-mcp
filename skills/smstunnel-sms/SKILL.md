@@ -5,14 +5,14 @@ license: MIT
 compatibility: Any agent that can use MCP servers (Claude Code, Claude Desktop, Cursor, VS Code, Codex, Gemini CLI and others). The MCP server needs Node.js 20 or newer and the SMSTunnel Android app on the user's phone.
 metadata:
   author: SMSTunnel (smstunnel.io)
-  version: "1.1.0"
+  version: "1.2.0"
   homepage: https://smstunnel.io/integrations/mcp/
   repository: https://github.com/narcisbodea/smstunnel-mcp
 ---
 
 # Texting from the user's own phone with SMSTunnel
 
-SMSTunnel lets an AI app send texts from the user's own Android phone. The SMSTunnel app on that phone sends each text from its own SIM, so the recipient sees the user's number and can reply. The agent works through seven MCP tools; this skill says when to use each one and the rules that keep the user in control.
+SMSTunnel lets an AI app send texts from the user's own Android phone. The SMSTunnel app on that phone sends each text from its own SIM, so the recipient sees the user's number and can reply. The agent works through nine MCP tools; this skill says when to use each one and the rules that keep the user in control.
 
 ## Before you start
 
@@ -24,9 +24,11 @@ This skill has no scripts and makes no network calls of its own. The MCP server 
 
 | Tool | Use it to | Sends anything? |
 | --- | --- | --- |
-| `send_sms` | Send one text to one number (up to 1,600 characters) | Yes |
+| `send_sms` | Send one text to one number (up to 1,600 characters), now or at a later time with `send_at` | Yes |
 | `send_sign_in_code` | Send a sign-in or verification code (the text must contain a 4–10 digit code; up to 320 characters) | Yes |
 | `get_message_status` | Check a text by its message ID: pending, sent, delivered, failed or unconfirmed | No |
+| `list_scheduled_texts` | See the texts scheduled with `send_at`: waiting, or (scope `done`) sent, failed or canceled | No |
+| `cancel_scheduled_text` | Cancel a scheduled text before it goes out, by its scheduled ID | Cancels one |
 | `list_phones` | See the linked phones, which are online, and their IDs | No |
 | `get_usage` | See the plan, what was sent today and what is left | No |
 | `list_received_texts` | Read texts the phones received (only when the user turned this on) | No |
@@ -40,6 +42,16 @@ This skill has no scripts and makes no network calls of its own. The MCP server 
 4. Tell the user the text was handed to their phone and give the message ID. If they want to know it arrived, call `get_message_status`.
 
 If the phone is offline, the text waits and goes out when the phone is back online. Say so instead of retrying.
+
+## Sending a text later
+
+When the user asks for a text at a later time ("tomorrow at 9", "on Friday morning"):
+
+1. Work out the date and time in the user's own time zone and write it in ISO 8601 with that offset, for example `2026-11-16T09:00:00+02:00`. If you don't know the user's time zone, ask; never leave the offset out. It must be 1 minute to 30 days ahead.
+2. Show the user the number, the words AND the time, and wait for their OK, as for any text.
+3. Call `send_sms` with `send_at`. Tell the user when it goes out and give the scheduled ID.
+
+At that time the user's phone sends it, as if it were sent then; if the phone is offline, the text waits for it, up to 3 days. `list_scheduled_texts` shows the waiting ones; `cancel_scheduled_text` cancels one, but only when the user asks, and when it is unclear which, list them and ask. Sign-in codes are never scheduled.
 
 ## Texting several people
 
@@ -77,6 +89,7 @@ Use `phone` to see replies from one person and `since` (ISO 8601, for example `2
 - "Text +14155550123: the delivery is at the back door." → show the number and words, wait for OK, `send_sms`.
 - "Text Ana that I'm running late." → `find_contact` with "Ana"; one match: show the name, number and words, wait for OK, `send_sms`; several: ask which one; none: ask for the number.
 - "Did my text to Ana arrive?" → `get_message_status` with the message ID from the send.
+- "Text +40712345678 tomorrow at 9: your appointment is at 10:30." → work out tomorrow 9:00 in the user's time zone, show the number, words and time, wait for OK, `send_sms` with `send_at`.
 - "Send my sign-in code 482913 to +447700900123." → `send_sign_in_code`.
 - "Remind each client with an appointment tomorrow." → build the list, show it, wait for OK, one `send_sms` per person.
 - "Did anyone reply to the reminders?" → `list_received_texts` with `since` set to when the reminders went out.
