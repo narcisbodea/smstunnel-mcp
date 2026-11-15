@@ -1,5 +1,5 @@
 /**
- * The SMSTunnel MCP server: seven tools over the SMSTunnel public API.
+ * The SMSTunnel MCP server: nine tools over the SMSTunnel public API.
  *
  * SMSTunnel lets the user's own apps and tools send texts through the user's own Android phone, from the
  * user's own number. One recipient per text: a tool call never carries several numbers.
@@ -9,8 +9,8 @@ import { McpServer } from '@modelcontextprotocol/server';
 import type { CallToolResult } from '@modelcontextprotocol/server';
 import * as z from 'zod';
 
-import { SmsTunnelApi } from './api.js';
-import type { SendInput, SendResponse } from './api.js';
+import { SmsTunnelApi, SmsTunnelApiError } from './api.js';
+import type { ScheduleResponse, ScheduledText, ScheduledTextResponse, SendInput, SendResponse } from './api.js';
 import {
   MAX_CODE_TEXT_LENGTH,
   MAX_NAME_LENGTH,
@@ -19,6 +19,8 @@ import {
   checkDeviceId,
   checkName,
   checkRecipient,
+  checkScheduledId,
+  checkSendAt,
   checkText,
   clean,
   cleanTime,
@@ -35,6 +37,7 @@ export const ICON_URL = 'https://smstunnel.io/android-chrome-512x512.png';
 export const INSTRUCTIONS = [
   "SMSTunnel sends texts (SMS) from the user's own Android phone, from the user's own number, through the SMSTunnel app on that phone.",
   'Send only texts the user asked for and the recipient expects. Unless the user already approved this exact text, show them the number and the words and wait for their OK.',
+  "To send a text later, give send_sms a send_at: the time the user asked for, in the user's own time zone, as ISO 8601 with that offset. Show the user the number, the words and the time, and wait for their OK.",
   'One text per person: to text several people, call send_sms once per person (about 30 texts a minute at most). Before texting several people, show the user the whole list (numbers and words) and wait for their OK.',
   'Write numbers in international format (+ and the country code).',
   'When the user names a person instead of giving a number, look the name up with find_contact (names saved in SMSTunnel only); never guess or complete a number.',
@@ -89,6 +92,46 @@ const sendOutput = z.object({
     .boolean()
     .describe("true when the Free plan's texts for the day were used up and this one goes out with a short SMSTunnel line at the end."),
   remainingToday: amount.optional().describe('Texts left today on the plan (without that line).'),
+});
+
+/** send_sms: a text sent now (as send_sign_in_code), or one scheduled with send_at. */
+const sendSmsOutput = sendOutput.extend({
+  messageId: z
+    .string()
+    .optional()
+    .describe('ID of the text; pass it to get_message_status. A scheduled text gets one only when it goes out.'),
+  queued: z
+    .boolean()
+    .optional()
+    .describe('true when the phone was offline: the text waits and goes out when the phone is back online. Not set for a scheduled text.'),
+  branded: z
+    .boolean()
+    .optional()
+    .describe("true when the Free plan's texts for the day were used up and this one goes out with a short SMSTunnel line at the end. Not set for a scheduled text."),
+  scheduled: z.boolean().optional().describe('true when the text was scheduled with send_at: SMSTunnel sends it at sendAt.'),
+  scheduledId: z.string().optional().describe('ID of the scheduled text; pass it to cancel_scheduled_text.'),
+  sendAt: z.string().optional().describe('When the scheduled text goes out, ISO 8601 in UTC.'),
+});
+
+const scheduledTextOutput = z.object({
+  scheduledId: z.string().describe('Pass it to cancel_scheduled_text.'),
+  to: z.string(),
+  message: z.string(),
+  sendAt: z.string().optional().describe('When it goes out (or went out), ISO 8601 in UTC.'),
+  status: z.string().describe('scheduled, sent, failed or canceled.'),
+  phoneId: z.string().optional().describe('The phone named when it was scheduled; without it, the default phone sends it.'),
+  messageId: z.string().optional().describe('Set once it went out; pass it to get_message_status.'),
+  error: z.string().optional().describe('Why it failed, e.g. limit_reached or phone_not_found.'),
+});
+
+const scheduledListOutput = z.object({
+  scope: z.enum(['waiting', 'done']),
+  texts: z.array(scheduledTextOutput),
+  total: z.number(),
+  page: z.number(),
+  limit: z.number(),
+  waiting: z.number().optional().describe('How many texts are waiting in the whole account.'),
+  max: z.number().optional().describe("How many texts the plan lets wait at once."),
 });
 
 const statusOutput = z.object({
@@ -241,27 +284,42 @@ export function createServer(config: SmsTunnelConfig = loadConfig(), options: Cr
         '- Number in international format (+ and the country code). A number without it needs defaultCountryCode; ask the user when unsure.',
         `- Up to ${MAX_TEXT_LENGTH} characters; long texts go out as several SMS parts.`,
         '- If the phone is offline, the text waits and goes out when the phone is back online.',
+        "- To send it later, pass send_at: the date and time the user asked for, in the user's own local time, converted to ISO 8601 with that time zone's offset (9:00 in Bucharest on 16 November is \"2026-11-16T09:00:00+02:00\"), from 1 minute to 30 days ahead. Ask the user when their time zone is not clear. Before scheduling, show the user the number, the words AND the time, and wait for their OK, as for any text. At that time the user's phone sends it; list_scheduled_texts shows the waiting ones and cancel_scheduled_text cancels one.",
         '- Never resend a text automatically: after an error, a timeout, or a failed or unconfirmed status, tell the user and let them decide.',
         '- For sign-in or verification codes, use send_sign_in_code instead.',
-        'Returns the message ID; check delivery with get_message_status.',
+        'Returns the message ID; check delivery with get_message_status. With send_at, returns the scheduledId and the time it goes out.',
       ].join('\n'),
       inputSchema: z.object({
         to: toField,
         message: z.string().max(4000).describe(`The words of the text, up to ${MAX_TEXT_LENGTH} characters.`),
         deviceId: deviceIdField,
         defaultCountryCode: countryCodeField,
+        send_at: z
+          .string()
+          .max(64)
+          .optional()
+          .describe(
+            'Optional: when to send it, instead of now. ISO 8601 with the offset of the user\'s time zone, e.g. "2026-11-16T09:00:00+02:00": the time the user said, in their local time, converted. 1 minute to 30 days ahead. Leave it out to send now.',
+          ),
       }),
-      outputSchema: sendOutput,
+      outputSchema: sendSmsOutput,
       annotations: { title: 'Send a text', ...SENDS },
       ...askEachTime,
     },
-    async (args) =>
-      run('send', async (smstunnel) => {
+    async (args) => {
+      const sendAt = checkSendAt(args.send_at);
+      return run(sendAt.ok && sendAt.value ? 'schedule' : 'send', async (smstunnel) => {
         const request = prepareSend(args, MAX_TEXT_LENGTH);
         if (typeof request === 'string') return failure(`${request} The text was not sent.`);
-        const response = await smstunnel.sendText(request);
-        return sentResult(request.to, response, 'text');
-      }),
+        if (!sendAt.ok) return failure(`${sendAt.error} The text was not sent or scheduled.`);
+        if (!sendAt.value) {
+          const response = await smstunnel.sendText(request);
+          return isScheduled(response) ? scheduledResult(request.to, undefined, response) : sentResult(request.to, response, 'text');
+        }
+        const response = await smstunnel.sendText({ ...request, sendAt: sendAt.value });
+        return scheduledResult(request.to, args.send_at, response);
+      });
+    },
   );
 
   server.registerTool(
@@ -325,6 +383,90 @@ export function createServer(config: SmsTunnelConfig = loadConfig(), options: Cr
           error: data.errorMessage ? clean(data.errorMessage, 300) : undefined,
         };
         return success(statusText(output), output);
+      }),
+  );
+
+  server.registerTool(
+    'list_scheduled_texts',
+    {
+      title: 'List scheduled texts',
+      description: [
+        'List the texts scheduled with send_sms (send_at) through this SMSTunnel key: by default the ones still waiting to go out, soonest first, with each scheduledId, number, words and time. scope "done" lists the ones that went out, failed or were canceled in the last 30 days, newest first. Read-only.',
+        '- Texts scheduled in the SMSTunnel dashboard or by another app are not listed. waiting counts the texts waiting in the whole account; max is how many the plan lets wait at once.',
+        '- A sent one has a messageId: check its delivery with get_message_status. A failed one is never retried on its own: tell the user.',
+      ].join('\n'),
+      inputSchema: z.object({
+        scope: z
+          .enum(['waiting', 'done'])
+          .optional()
+          .describe('"waiting" (default): not gone out yet. "done": sent, failed or canceled in the last 30 days.'),
+        limit: z.number().int().min(1).max(100).optional().describe('How many to return, 1 to 100 (default 20).'),
+        page: z.number().int().min(1).max(1000).optional().describe('Page of results, from 1.'),
+      }),
+      outputSchema: scheduledListOutput,
+      annotations: { title: 'List scheduled texts', ...READS },
+    },
+    async (args) =>
+      run('scheduled', async (smstunnel) => {
+        const limit = args.limit ?? 20;
+        const response = await smstunnel.listScheduled({ scope: args.scope, page: args.page, limit });
+        const data = response.data;
+        const texts = (data?.items ?? []).map(scheduledItem);
+        const output = {
+          scope: args.scope ?? 'waiting',
+          texts,
+          total: count(data?.total) ?? texts.length,
+          page: count(data?.page) ?? args.page ?? 1,
+          limit: count(data?.limit) ?? limit,
+          waiting: count(data?.waiting),
+          max: count(data?.max),
+        };
+        return success(scheduledListText(output), output);
+      }),
+  );
+
+  server.registerTool(
+    'cancel_scheduled_text',
+    {
+      title: 'Cancel a scheduled text',
+      description: [
+        'Cancel a text scheduled with send_sms (send_at), before it goes out, by its scheduledId. It is then never sent.',
+        '- Cancel only a text the user asked to cancel. When it is not clear which one, list them with list_scheduled_texts and ask the user.',
+        "- A text that already went out can't be canceled; the answer says what happened to it.",
+        "- A canceled text can't be brought back: to send it after all, schedule it again with send_sms, with the user's OK.",
+      ].join('\n'),
+      inputSchema: z.object({
+        scheduledId: z.string().min(1).max(64).describe('The scheduledId that send_sms or list_scheduled_texts returned.'),
+      }),
+      outputSchema: scheduledTextOutput,
+      annotations: {
+        title: 'Cancel a scheduled text',
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (args) =>
+      run('cancel', async (smstunnel) => {
+        const id = checkScheduledId(args.scheduledId);
+        if (!id.ok) return failure(id.error);
+        let response: ScheduledTextResponse;
+        try {
+          response = await smstunnel.cancelScheduled(id.value);
+        } catch (error) {
+          if (error instanceof SmsTunnelApiError && error.status === 409) return notCanceled(smstunnel, id.value, error);
+          throw error;
+        }
+        if (!response.data) {
+          return failure('SMSTunnel answered without the scheduled text. Check list_scheduled_texts to see whether it was canceled.');
+        }
+        const output = scheduledItem(response.data);
+        return success(
+          `Canceled: the text to ${output.to || 'its number'} that was to go out at ${output.sendAt ?? 'its time'} ` +
+            `(scheduled id ${output.scheduledId}) will not be sent.`,
+          output,
+        );
       }),
   );
 
@@ -543,6 +685,120 @@ function sentResult(to: string, response: SendResponse, what: 'text' | 'sign-in 
   }
   if (typeof output.remainingToday === 'number') lines.push(`Texts left today on the plan: ${output.remainingToday}.`);
   return success(lines.join('\n'), output);
+}
+
+function isScheduled(response: SendResponse | ScheduleResponse): response is ScheduleResponse {
+  return response.scheduled === true;
+}
+
+/** send_sms with send_at: what SMSTunnel kept, or what went wrong. `asked` is send_at as the call gave it. */
+function scheduledResult(to: string, asked: string | undefined, response: SendResponse | ScheduleResponse): CallToolResult {
+  const unknown = failure(
+    'SMSTunnel answered without a scheduled ID. It is not known whether the text was scheduled, so do not schedule ' +
+      'it again on your own: check list_scheduled_texts first.',
+  );
+  if (!isScheduled(response)) {
+    const messageId = response.data?.messageId ?? response.messageId;
+    // A server that dropped send_at without refusing it: the text went out now.
+    if (!messageId) return unknown;
+    return failure(
+      `SMSTunnel sent the text to ${to} right away instead of at send_at: this SMSTunnel server does not schedule ` +
+        `texts. Message ID: ${clean(messageId, 64)}. Tell the user it already went out; do not send it again.`,
+    );
+  }
+  const scheduledId = clean(response.scheduledId ?? response.data?.id, 64);
+  if (!scheduledId) return unknown;
+  const sendAt = cleanTime(response.sendAt ?? response.data?.sendAt);
+  const output = { scheduled: true, scheduledId, to, sendAt };
+  const lines = [
+    `SMSTunnel scheduled the text for ${to} at ${sendAt ?? 'the time given'} (UTC${asked ? `; send_at was ${JSON.stringify(clean(asked, 40))}` : ''}). Scheduled ID: ${scheduledId}.`,
+    "At that time the user's phone sends it from the user's own number; if the phone is offline then, the text waits for it, up to 3 days.",
+    'list_scheduled_texts shows it, and cancel_scheduled_text cancels it until it goes out.',
+  ];
+  return success(lines.join('\n'), output);
+}
+
+/** One scheduled text, cleaned before a model reads it. */
+function scheduledItem(item: ScheduledText) {
+  return {
+    scheduledId: clean(item?.id, 64),
+    to: clean(item?.to, 40),
+    message: clean(item?.message, 2000),
+    sendAt: cleanTime(item?.sendAt),
+    status: clean(item?.status, 20).toLowerCase(),
+    phoneId: item?.deviceId ? clean(item.deviceId, 64) : undefined,
+    messageId: item?.messageId ? clean(item.messageId, 64) : undefined,
+    error: item?.error ? clean(item.error, 60) : undefined,
+  };
+}
+
+function scheduledListText(r: {
+  scope: 'waiting' | 'done';
+  texts: Array<ReturnType<typeof scheduledItem>>;
+  total: number;
+  page: number;
+  limit: number;
+  waiting?: number;
+  max?: number;
+}): string {
+  const plan =
+    r.waiting !== undefined && r.max !== undefined
+      ? ` Waiting in the whole account: ${r.waiting} of the ${r.max} the plan allows at once.`
+      : '';
+  if (r.texts.length === 0) {
+    return r.scope === 'done'
+      ? `No text scheduled with this key went out, failed or was canceled in the last 30 days.${plan}`
+      : `No text scheduled with this key is waiting to go out.${plan}`;
+  }
+  const lines = [
+    r.scope === 'done'
+      ? `${r.texts.length} of ${r.total} scheduled texts that went out, failed or were canceled, newest first (page ${r.page}).`
+      : `${r.texts.length} of ${r.total} scheduled texts waiting to go out, soonest first (page ${r.page}).`,
+  ];
+  for (const text of r.texts) {
+    const detail =
+      text.status === 'sent' && text.messageId
+        ? `, message ID ${text.messageId}`
+        : text.status === 'failed' && text.error
+          ? `: ${text.error}`
+          : '';
+    lines.push(
+      `- ${text.sendAt ?? 'unknown time'} to ${text.to} (scheduled id ${text.scheduledId}, ${text.status}${detail}): ${JSON.stringify(text.message)}`,
+    );
+  }
+  if (r.page * r.limit < r.total) lines.push('More on the next page.');
+  if (plan) lines.push(plan.trim());
+  return lines.join('\n');
+}
+
+/** cancel_scheduled_text answered 409: says what became of the text, from SMSTunnel's own record of it. */
+async function notCanceled(smstunnel: SmsTunnelApi, id: string, error: SmsTunnelApiError): Promise<CallToolResult> {
+  try {
+    const found = (await smstunnel.getScheduled(id)).data;
+    if (found) {
+      const text = scheduledItem(found);
+      const tag = `(HTTP 409${error.code ? `, ${clean(error.code, 40)}` : ''})`;
+      if (text.status === 'canceled') {
+        return success(`This text to ${text.to} was already canceled ${tag}: it will not be sent.`, text);
+      }
+      if (text.status === 'failed') {
+        return success(
+          `This text to ${text.to} already failed${text.error ? ` (${text.error})` : ''} ${tag}: it will not be sent.`,
+          text,
+        );
+      }
+      if (text.status === 'sent') {
+        return failure(
+          `This text to ${text.to} can no longer be canceled: it already went out ${tag}` +
+            `${text.messageId ? `; check its delivery with get_message_status (message ID ${text.messageId})` : ''}.`,
+        );
+      }
+      return failure(`This text to ${text.to} can no longer be canceled: it is going out right now ${tag}.`);
+    }
+  } catch {
+    // The general words below.
+  }
+  return failure(describeError(error, 'cancel'));
 }
 
 function statusText(s: { messageId: string; to: string; status: string; sentAt?: string; deliveredAt?: string; error?: string }): string {

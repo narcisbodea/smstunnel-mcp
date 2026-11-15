@@ -23,6 +23,53 @@ export interface SendResponse {
     /** clean: texts left today without that line (-1 = unlimited). */
     remaining?: { clean?: number; total?: number | string };
   };
+  /** Never set on a text sent now; see ScheduleResponse. */
+  scheduled?: false;
+}
+
+/** A text SMSTunnel keeps to send later (POST /sms/send with sendAt), as the key that scheduled it sees it. */
+export interface ScheduledText {
+  id: string;
+  to: string;
+  message: string;
+  /** ISO 8601, UTC. */
+  sendAt: string;
+  /** scheduled, then sent, failed or canceled. */
+  status: string;
+  deviceId?: string | null;
+  /** Set once it went out: its delivery is GET /sms/status/:messageId. */
+  messageId?: string | null;
+  /** Why it failed (key_not_active, limit_reached, invalid_number, phone_not_found, interrupted, ...). */
+  error?: string | null;
+  createdAt?: string | null;
+}
+
+/** POST /sms/send with sendAt answers this instead of a SendResponse. */
+export interface ScheduleResponse {
+  success: boolean;
+  scheduled: true;
+  scheduledId: string;
+  sendAt: string;
+  data?: ScheduledText;
+}
+
+export interface ScheduledListResponse {
+  success: boolean;
+  data?: {
+    items: ScheduledText[];
+    total: number;
+    page: number;
+    limit: number;
+    /** Texts waiting in the whole account (the dashboard's and other keys' too). */
+    waiting: number;
+    /** The plan's cap on texts waiting at once. */
+    max: number;
+  };
+}
+
+export interface ScheduledTextResponse {
+  success: boolean;
+  data?: ScheduledText;
 }
 
 export interface MessageStatusResponse {
@@ -105,6 +152,15 @@ export interface SendInput {
   message: string;
   deviceId?: string;
   defaultCountryCode?: string;
+  /** Only for sendText: send it at this time instead of now. A full ISO 8601 string with its offset (checks.ts). */
+  sendAt?: string;
+}
+
+export interface ScheduledQuery {
+  /** waiting (SMSTunnel's default) or done. */
+  scope?: 'waiting' | 'done';
+  page?: number;
+  limit?: number;
 }
 
 export interface ReceivedQuery {
@@ -131,19 +187,24 @@ export interface NamesQuery {
  * - 403: the key lacks a permission (`code: 'PERMISSION_REQUIRED'`, see `permission`; `NAMES_NOT_ALLOWED` for name
  *   lookups), or the plan doesn't allow it.
  * - 404: no such message or phone for this key, or name lookups are not on for the account yet.
+ * - 409: `code: 'SCHEDULE_NOT_EDITABLE'`: the scheduled text already went out or was canceled.
  * - 429: too many requests (`code: 'NAMES_LOOKUP_LIMIT'`: the key's hourly or daily name lookups are used up).
+ * A scheduled text's refusals carry a SCHEDULE_* code (SCHEDULE_TOO_SOON, SCHEDULE_LIMIT_REACHED with `max`, ...).
  */
 export class SmsTunnelApiError extends Error {
   readonly status: number;
   readonly code?: string;
   readonly permission?: string;
+  /** With SCHEDULE_LIMIT_REACHED: how many texts the plan lets wait at once. */
+  readonly max?: number;
 
-  constructor(status: number, message: string, code?: string, permission?: string) {
+  constructor(status: number, message: string, code?: string, permission?: string, max?: number) {
     super(message);
     this.name = 'SmsTunnelApiError';
     this.status = status;
     this.code = code;
     this.permission = permission;
+    if (max !== undefined) this.max = max;
   }
 
   static fromBody(status: number, body: unknown): SmsTunnelApiError {
@@ -153,6 +214,7 @@ export class SmsTunnelApiError extends Error {
       errorMessageOf(body, status),
       typeof fields.code === 'string' ? fields.code : undefined,
       typeof fields.permission === 'string' ? fields.permission : undefined,
+      typeof fields.max === 'number' && Number.isFinite(fields.max) ? fields.max : undefined,
     );
   }
 }
@@ -190,9 +252,12 @@ export class SmsTunnelApi {
     this.fetchImpl = options.fetch ?? globalThis.fetch;
   }
 
-  /** POST /api/v1/sms/send: one text to one number. */
-  sendText(input: SendInput): Promise<SendResponse> {
-    return this.request('POST', '/api/v1/sms/send', sendBody(input));
+  /** POST /api/v1/sms/send: one text to one number, now, or with `sendAt` at that time (a ScheduleResponse). */
+  sendText(input: SendInput): Promise<SendResponse | ScheduleResponse> {
+    return this.request('POST', '/api/v1/sms/send', {
+      ...sendBody(input),
+      ...(input.sendAt ? { sendAt: input.sendAt } : {}),
+    });
   }
 
   /** POST /api/v1/sms/send-2fa: a sign-in code (4 to 10 digits in the text); separate allowance. */
@@ -203,6 +268,26 @@ export class SmsTunnelApi {
   /** GET /api/v1/sms/status/:messageId (needs sms:read). */
   getMessageStatus(messageId: string): Promise<MessageStatusResponse> {
     return this.request('GET', `/api/v1/sms/status/${encodeURIComponent(messageId)}`);
+  }
+
+  /** GET /api/v1/sms/scheduled (needs sms:read): the texts this key scheduled, waiting ones soonest first. */
+  listScheduled(query: ScheduledQuery = {}): Promise<ScheduledListResponse> {
+    const params = new URLSearchParams();
+    if (query.scope) params.set('scope', query.scope);
+    if (query.page !== undefined) params.set('page', String(query.page));
+    if (query.limit !== undefined) params.set('limit', String(query.limit));
+    const qs = params.toString();
+    return this.request('GET', `/api/v1/sms/scheduled${qs ? `?${qs}` : ''}`);
+  }
+
+  /** GET /api/v1/sms/scheduled/:id (needs sms:read); 404 SCHEDULE_NOT_FOUND for another key's text. */
+  getScheduled(scheduledId: string): Promise<ScheduledTextResponse> {
+    return this.request('GET', `/api/v1/sms/scheduled/${encodeURIComponent(scheduledId)}`);
+  }
+
+  /** DELETE /api/v1/sms/scheduled/:id (needs sms:send): cancels it while it waits; 409 once it went out. */
+  cancelScheduled(scheduledId: string): Promise<ScheduledTextResponse> {
+    return this.request('DELETE', `/api/v1/sms/scheduled/${encodeURIComponent(scheduledId)}`);
   }
 
   /** GET /api/v1/devices: the phones of the key's account. */
@@ -238,7 +323,7 @@ export class SmsTunnelApi {
     });
   }
 
-  private async request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+  private async request<T>(method: 'GET' | 'POST' | 'DELETE', path: string, body?: unknown): Promise<T> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     let res: Response;

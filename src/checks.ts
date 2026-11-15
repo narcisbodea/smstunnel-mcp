@@ -91,6 +91,52 @@ export function checkDeviceId(raw: unknown): Check<string | undefined> {
   return { ok: false, error: 'deviceId is not a phone ID. Use an id from list_phones, or leave it out.' };
 }
 
+/** The ID of a scheduled text (scheduledId from send_sms or list_scheduled_texts). */
+export function checkScheduledId(raw: unknown): Check<string> {
+  if (typeof raw === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(raw.trim())) return { ok: true, value: raw.trim() };
+  return { ok: false, error: 'scheduledId is not the ID of a scheduled text. Use a scheduledId from send_sms or list_scheduled_texts.' };
+}
+
+// YYYY-MM-DD, T (or a space), hh:mm, optional :ss and a fraction, then the offset: Z, ±hh:mm, ±hhmm or ±hh.
+const ISO_DATE_TIME =
+  /^(\d{4})-(\d{2})-(\d{2})[Tt ](\d{2}):(\d{2})(?::(\d{2})(?:[.,](\d+))?)?(?:([Zz])|([+-])(\d{2})(?::?(\d{2}))?)?$/;
+const SEND_AT_EXAMPLE = '"2026-11-16T09:00:00+02:00"';
+
+/**
+ * send_at: an ISO 8601 date and time with its offset, as SMSTunnel's sendAt (it is sent as toISOString(), UTC), or
+ * undefined when the text goes out now. A time without its offset is refused: it would be read in some other time
+ * zone. So is a date that doesn't exist, such as 30 February (new Date() would turn it into 2 March). Whether it is
+ * 1 minute to 30 days ahead is left to SMSTunnel, whose clock decides.
+ */
+export function checkSendAt(raw: unknown): Check<string | undefined> {
+  if (raw === undefined || raw === null || (typeof raw === 'string' && raw.trim() === '')) return { ok: true, value: undefined };
+  const parts = typeof raw === 'string' ? ISO_DATE_TIME.exec(raw.trim()) : null;
+  if (!parts) {
+    return {
+      ok: false,
+      error: `send_at must be a date and time in ISO 8601 with the offset of the user's time zone, such as ${SEND_AT_EXAMPLE}.`,
+    };
+  }
+  const shown = JSON.stringify(clean(raw, 40));
+  const [, year, month, day, hour, minute, second = '00', fraction = '', zulu, sign, offsetHours = '00', offsetMinutes = '00'] =
+    parts;
+  if (!zulu && !sign) {
+    return {
+      ok: false,
+      error:
+        `send_at ${shown} has no offset. Add the offset of the user's time zone, such as ${SEND_AT_EXAMPLE} ` +
+        "(or Z for UTC), so the text goes out at the time the user means; ask the user when you don't know their time zone.",
+    };
+  }
+  const wall = `${year}-${month}-${day}T${hour}:${minute}:${second}.${(fraction + '000').slice(0, 3)}Z`;
+  const at = Date.parse(wall);
+  if (Number.isNaN(at) || new Date(at).toISOString() !== wall || Number(offsetHours) > 23 || Number(offsetMinutes) > 59) {
+    return { ok: false, error: `send_at ${shown} is not a real date and time. Use one such as ${SEND_AT_EXAMPLE}.` };
+  }
+  const offset = sign ? (sign === '-' ? -1 : 1) * (Number(offsetHours) * 60 + Number(offsetMinutes)) : 0;
+  return { ok: true, value: new Date(at - offset * 60_000).toISOString() };
+}
+
 // Control characters, plus the Unicode marks that can hide or reorder text (bidi overrides, zero-width).
 const HIDDEN_CHARS = /[\u0000-\u001F\u007F-\u009F​-‏‪-‮⁠-⁤⁦-⁩﻿]+/g;
 

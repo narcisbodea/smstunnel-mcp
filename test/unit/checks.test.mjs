@@ -1,7 +1,60 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { checkDeviceId, checkName, checkRecipient, checkText, clean, cleanTime } from '../../dist/checks.js';
+import {
+  checkDeviceId,
+  checkName,
+  checkRecipient,
+  checkScheduledId,
+  checkSendAt,
+  checkText,
+  clean,
+  cleanTime,
+} from '../../dist/checks.js';
+
+describe('checkSendAt', () => {
+  it('takes ISO 8601 with its offset and gives it in UTC, as toISOString()', () => {
+    for (const [given, sent] of [
+      ['2026-11-16T09:00:00+02:00', '2026-11-16T07:00:00.000Z'],
+      ['2026-11-16T09:00Z', '2026-11-16T09:00:00.000Z'],
+      ['2026-11-16T09:00:00.5-05:00', '2026-11-16T14:00:00.500Z'],
+      [' 2026-11-16 09:00:00.123456+0530 ', '2026-11-16T03:30:00.123Z'],
+      ['2026-11-16t09:00:00z', '2026-11-16T09:00:00.000Z'],
+      ['2026-11-16T09:00:00-03', '2026-11-16T12:00:00.000Z'],
+      ['2028-02-29T00:30:00+01:00', '2028-02-28T23:30:00.000Z'],
+    ]) {
+      assert.deepEqual(checkSendAt(given), { ok: true, value: sent }, given);
+    }
+  });
+
+  it('is not set when left out or empty', () => {
+    for (const nothing of [undefined, null, '', '   ']) assert.deepEqual(checkSendAt(nothing), { ok: true, value: undefined });
+  });
+
+  it('refuses a time without its offset, or that is not a real time', () => {
+    const noOffset = checkSendAt('2026-11-16T09:00:00');
+    assert.equal(noOffset.ok, false);
+    assert.match(noOffset.error, /has no offset\. Add the offset of the user's time zone, such as "2026-11-16T09:00:00\+02:00"/);
+    for (const bad of ['2026-11-16T09:00', '2026-02-30T09:00:00Z', '2026-11-16T24:00:00Z', '2026-11-16T09:00:60Z', '2026-11-16T09:00:00+24:00']) {
+      assert.equal(checkSendAt(bad).ok, false, bad);
+    }
+    assert.match(checkSendAt('2026-02-30T09:00:00Z').error, /is not a real date and time/);
+    for (const bad of ['2026-11-16', 'tomorrow 9:00', '16/11/2026 09:00+02:00', '2026-11-16T09:00:00‮', 1794812400000, {}, true]) {
+      const refused = checkSendAt(bad);
+      assert.equal(refused.ok, false, String(bad));
+      assert.match(refused.error, /^send_at must be a date and time in ISO 8601 with the offset of the user's time zone/);
+    }
+  });
+});
+
+describe('checkScheduledId', () => {
+  it('accepts an ID and trims it, and refuses anything else', () => {
+    assert.deepEqual(checkScheduledId(' 6735a0c4e1d9e1b7b54cf994 '), { ok: true, value: '6735a0c4e1d9e1b7b54cf994' });
+    for (const bad of ['', ' ', 'a/b', 'a b', 'x'.repeat(65), undefined, 42]) {
+      assert.equal(checkScheduledId(bad).ok, false, String(bad));
+    }
+  });
+});
 
 describe('checkName', () => {
   it('trims the name and takes 2 to 60 characters', () => {

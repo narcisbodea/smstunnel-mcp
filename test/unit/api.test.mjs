@@ -63,6 +63,41 @@ describe('SmsTunnelApi requests', () => {
     for (const call of calls.slice(0, 4)) assert.equal(call.headers['Content-Type'], undefined, 'GET has no body');
   });
 
+  it('sends sendAt with a text only, never with a sign-in code', async () => {
+    const { client, calls } = api({
+      'POST /api/v1/sms/send': [200, { success: true, scheduled: true, scheduledId: 's1', sendAt: '2026-11-16T07:00:00.000Z' }],
+      'POST /api/v1/sms/send-2fa': [200, { success: true, messageId: 'm3' }],
+    });
+    const res = await client.sendText({ to: '+14155550123', message: 'Later', sendAt: '2026-11-16T07:00:00.000Z' });
+    await client.sendSignInCode({ to: '+14155550123', message: 'Code 482913', sendAt: '2026-11-16T07:00:00.000Z' });
+    assert.deepEqual(res, { success: true, scheduled: true, scheduledId: 's1', sendAt: '2026-11-16T07:00:00.000Z' });
+    assert.deepEqual(calls[0].body, { to: '+14155550123', message: 'Later', sendAt: '2026-11-16T07:00:00.000Z' });
+    assert.deepEqual(calls[1].body, { to: '+14155550123', message: 'Code 482913' });
+  });
+
+  it('lists, gets and cancels scheduled texts', async () => {
+    const item = { id: 's/1', to: '+1', message: 'x', sendAt: '2026-11-16T07:00:00.000Z', status: 'scheduled' };
+    const { client, calls } = api({
+      'GET /api/v1/sms/scheduled': [200, { success: true, data: { items: [item], total: 1, page: 1, limit: 20, waiting: 1, max: 10 } }],
+      'GET /api/v1/sms/scheduled/s%2F1': [200, { success: true, data: item }],
+      'DELETE /api/v1/sms/scheduled/s%2F1': [200, { success: true, data: { ...item, status: 'canceled' } }],
+    });
+    await client.listScheduled();
+    await client.listScheduled({ scope: 'done', page: 2, limit: 20 });
+    const one = await client.getScheduled('s/1');
+    const canceled = await client.cancelScheduled('s/1');
+    assert.equal(calls[0].url.search, '');
+    assert.deepEqual(Object.fromEntries(calls[1].url.searchParams), { scope: 'done', page: '2', limit: '20' });
+    assert.equal(one.data.status, 'scheduled');
+    assert.equal(calls[3].method, 'DELETE');
+    assert.equal(calls[3].url.pathname, '/api/v1/sms/scheduled/s%2F1');
+    assert.equal(canceled.data.status, 'canceled');
+    for (const call of calls) {
+      assert.equal(call.headers['X-API-Key'], FAKE_KEY);
+      assert.equal(call.headers['Content-Type'], undefined, 'no body');
+    }
+  });
+
   it('posts a name lookup to /names/find, with the search word in the body and never in the URL', async () => {
     const { client, calls } = api({ 'POST /api/v1/names/find': [200, { items: [{ name: 'Ana Pop', number: '+40722123456' }], more: false }] });
     const res = await client.findNames({ q: 'Ana Pop', limit: 5 });
@@ -107,6 +142,23 @@ describe('SmsTunnelApi errors', () => {
     assert.deepEqual([e400.status, e400.code, e400.message], [400, 'QUERY_TOO_SHORT', 'q must be at least 2 characters']);
     const e429 = await errorOf(client.findNames({ q: 'd' }));
     assert.deepEqual([e429.status, e429.code], [429, 'NAMES_LOOKUP_LIMIT']);
+  });
+
+  it('carries the scheduled-text codes, and the plan cap', async () => {
+    const answers = {
+      '+1': [403, { statusCode: 403, error: 'Forbidden', code: 'SCHEDULE_LIMIT_REACHED', message: 'You have as many scheduled texts as your plan allows.', max: 10 }],
+      '+2': [400, { statusCode: 400, error: 'Bad Request', message: ['property sendAt should not exist'] }],
+    };
+    const { client } = api({
+      'POST /api/v1/sms/send': (call) => answers[call.body.to],
+      'DELETE /api/v1/sms/scheduled/s1': [409, { statusCode: 409, error: 'Conflict', code: 'SCHEDULE_NOT_EDITABLE', message: 'This text has already gone out or was canceled.' }],
+    });
+    const full = await errorOf(client.sendText({ to: '+1', message: 'x', sendAt: '2026-11-16T07:00:00.000Z' }));
+    assert.deepEqual([full.status, full.code, full.max], [403, 'SCHEDULE_LIMIT_REACHED', 10]);
+    const old = await errorOf(client.sendText({ to: '+2', message: 'x', sendAt: '2026-11-16T07:00:00.000Z' }));
+    assert.deepEqual([old.status, old.code, old.max, old.message], [400, undefined, undefined, 'property sendAt should not exist']);
+    const late = await errorOf(client.cancelScheduled('s1'));
+    assert.deepEqual([late.status, late.code], [409, 'SCHEDULE_NOT_EDITABLE']);
   });
 
   it('reads every error body shape', async () => {
